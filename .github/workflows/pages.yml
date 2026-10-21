@@ -1,0 +1,49 @@
+name: Publicar en GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Armar el sitio (config.js se genera con los Secrets del repositorio)
+        env:
+          FB_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
+          FB_AUTH_DOMAIN: ${{ secrets.FIREBASE_AUTH_DOMAIN }}
+          FB_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          FB_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
+        run: |
+          mkdir _site
+          cp index.html styles.css app.js icons.js store.js _site/
+          if [ -n "$FB_API_KEY" ]; then
+            printf 'window.FIREBASE_CONFIG = {\n  apiKey: "%s",\n  authDomain: "%s",\n  projectId: "%s",\n  appId: "%s"\n};\n' \
+              "$FB_API_KEY" "$FB_AUTH_DOMAIN" "$FB_PROJECT_ID" "$FB_APP_ID" > _site/config.js
+          else
+            echo 'window.FIREBASE_CONFIG = null;' > _site/config.js
+          fi
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

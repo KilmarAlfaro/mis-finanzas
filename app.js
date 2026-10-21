@@ -209,6 +209,7 @@ document.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => {
   document.querySelectorAll('main section').forEach(s => s.classList.toggle('on', s.id === b.dataset.tab));
   if (b.dataset.tab === 'res') render();
   updateBoxes();
+  b.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });   // en móvil la pestaña activa queda a la vista
 });
 
 /* ---------- Campos de fecha (Flatpickr) ---------- */

@@ -564,3 +564,116 @@ ul.sbox li.dayh:not(:first-child){border-top:1px solid var(--line)}
 .gdlg input:not([type=checkbox]){width:100%;padding:.7rem .9rem;border:1px solid #AEBFB9;border-radius:10px;background:#fff;min-height:3rem}
 .gdlg .c-btns .btn{width:100%;margin:0}
 @media(max-width:560px){.g-fields{grid-template-columns:1fr}}
+
+/* =====================================================================
+   RESPONSIVO (móvil primero)
+   Se escribe para pantallas pequeñas y se amplía hacia arriba.
+   ===================================================================== */
+input,select,textarea{font-size:max(16px,1rem)}          /* 16px mínimo: iOS no hace zoom al tocar un campo */
+img,canvas{max-width:100%}
+
+/* --- Pantalla de acceso --- */
+#lock{min-height:100vh;min-height:100dvh;padding:clamp(.75rem,4vw,1.4rem)}
+.card{width:90%;max-width:450px;margin:20px auto;padding:24px;gap:1rem}
+.card h1{font-size:clamp(1.5rem,7.5vw,1.8rem)}
+.card input:not([type=checkbox]),.card select,.card .btn{width:100%}
+.card .btn{min-height:3rem}
+.seg{display:flex;flex-wrap:wrap;gap:4px}                 /* si no caben lado a lado, pasan a una columna */
+.seg button{flex:1 1 7.5rem;min-height:2.75rem;white-space:nowrap}
+.seg.one button{flex-basis:100%}
+#msg{min-height:0}
+#msg:empty{display:none}
+#google-box{display:grid;gap:.7rem}
+.or{margin:0}
+#google{display:flex;align-items:center;justify-content:center;gap:.7rem;width:100%;background:#fff;border:1.5px solid #AEBFB9;color:var(--ink)}
+#google:hover{background:#F4F8F6}
+#google svg{width:1.25rem;height:1.25rem;flex:none}
+.chk{align-items:flex-start}
+.code{overflow-wrap:anywhere}
+
+/* --- Encabezado y navegación --- */
+.top{flex-wrap:wrap;row-gap:.6rem}
+.top h1{font-size:clamp(1.3rem,6.5vw,1.6rem)}
+.who{min-width:0;margin-left:auto}
+nav{scrollbar-width:none;-webkit-overflow-scrolling:touch}
+nav::-webkit-scrollbar{display:none}
+
+/* --- Listas: textos largos se acomodan en vez de salirse --- */
+li b,li small{overflow-wrap:anywhere}
+li small{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.figs{grid-template-columns:repeat(3,minmax(0,1fr))}
+.fig{min-width:0}
+.fig b{overflow-wrap:anywhere}
+.goal-list{grid-template-columns:repeat(auto-fill,minmax(min(21rem,100%),1fr))}
+.tr-info{min-width:0}
+.tr-info>div{flex:1 1 12rem;min-width:0}
+
+/* --- Ventanas --- */
+.modal{padding:.75rem}
+.dlg{max-height:calc(100vh - 1.5rem);max-height:calc(100dvh - 1.5rem);overflow-y:auto}
+.flatpickr-calendar{--d:min(2.6rem,calc((100vw - 1.5rem)/7))}
+
+@media(max-width:640px){
+  main.wrap{padding-top:1.2rem}
+  nav{flex:1 1 100%}
+  nav button{padding:.75rem .9rem}
+  .sumbtn{margin:.2rem 0 .8rem auto}
+  /* Cifras: la principal arriba, las otras dos debajo en dos columnas */
+  .figs{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .fig.main{grid-column:1/-1;padding:0 0 1rem;margin-bottom:1rem;border-bottom:1px solid var(--line)}
+  .fig:nth-child(2){padding-left:0;border-left:0}
+  .fig:nth-child(3){padding-left:.9rem}
+  .fig b{font-size:clamp(1.3rem,7vw,1.8rem)}
+  .fig.main b{font-size:clamp(1.9rem,10vw,2.5rem)}
+  .fig small{font-size:.9rem}
+  .chart{padding:1rem}
+  li{padding:.75rem .9rem;gap:.6rem}
+  li b,li .amt{font-size:1rem}
+  ul.sbox li.dayh{padding:.5rem .9rem}
+  .goal{padding:1rem 1rem .9rem 1.3rem}
+  .g-nums b{font-size:1.45rem}
+  .tools .btn{flex:1 1 100%}
+  .tr-info .btn{white-space:normal}
+}
+
+@media(max-width:560px){
+  /* Un campo por renglón: etiquetas completas y nada encimado */
+  form.add{padding:1rem;gap:.8rem}
+  form.add>label,form.add>.field{flex:1 1 100%!important;min-width:0!important}
+  form.add>.btn{margin-top:.2rem}
+}
+
+@media(max-width:480px){
+  .card{width:92%;padding:20px;gap:.9rem;border-radius:18px}
+  .card h1{font-size:1.5rem}
+  .note{font-size:.9rem}
+  .code{font-size:1.15rem;padding:.9rem .4rem;letter-spacing:.04em}
+  .dlg{padding:1.2rem;border-radius:18px}
+  .dlg h2{font-size:1.25rem}
+  .cdlg h2{font-size:1.15rem}
+  .c-ico{width:3.4rem;height:3.4rem}
+  .chart>div{height:18rem}
+}
+.seg button{min-width:0;padding:.65rem .4rem}
+
+/* --- Afinado móvil --- */
+@media(max-width:640px){
+  .per{flex-wrap:wrap;white-space:nowrap}
+  .per select{flex:1 1 10rem}
+  nav button{font-size:.95rem;padding:.75rem .7rem}
+  .g-top b,.g-top small{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere}
+}
+@media(max-width:420px){
+  .ghost{padding:.35rem .75rem;font-size:.85rem}
+  li{gap:.4rem}
+  li .lead{gap:.6rem}
+  li .lead .cbadge{width:2.2rem;height:2.2rem}
+  li .lead .cbadge svg{width:1.1rem;height:1.1rem}
+  li .x{width:2.2rem;height:2.2rem}
+  li .amt{font-size:.95rem}
+  /* Préstamos: el botón "Cobrado" y el basurero pasan a su propia línea */
+  li:has(.btn.sm){grid-template-columns:minmax(0,1fr) auto}
+  li:has(.btn.sm)>span:last-child{grid-column:1/-1;justify-content:flex-end}
+}
+.top{column-gap:.6rem}
+.top h1{font-size:clamp(1.2rem,6.2vw,1.6rem)}

@@ -1,0 +1,16 @@
+# Configuración real de Firebase (se genera en GitHub con Secrets)
+config.js
+
+# Copias de seguridad con tus datos financieros
+copia-finanzas-*.json
+*.json.bak
+
+# Notas de traspaso del proyecto (pueden incluir datos de configuración)
+traspaso-*.md
+
+# Sistema y editores
+.DS_Store
+Thumbs.db
+node_modules/
+.vscode/
+*.log

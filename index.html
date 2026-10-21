@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#17302B">
+<title>Mis finanzas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css">
+<link rel="stylesheet" href="styles.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/l10n/es.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+</head>
+<body>
+
+<div id="lock">
+  <div class="card">
+    <h1>Mis finanzas</h1>
+    <p id="note" class="note"></p>
+
+    <form id="auth-form" novalidate>
+      <div class="seg" id="seg" role="group" aria-label="Modo">
+        <button type="button" data-mode="in" aria-pressed="true">Entrar</button>
+        <button type="button" data-mode="up" aria-pressed="false">Crear cuenta</button>
+      </div>
+      <label id="eml">Correo (Gmail)<input id="em" type="email" autocomplete="email" inputmode="email"></label>
+      <label id="codel" hidden>Clave de recuperación<input id="code" autocomplete="off" autocapitalize="characters" placeholder="XXXX-XXXX-XXXX-XXXX"></label>
+      <label id="pwl"><span id="pwt">Contraseña</span><input id="pw" type="password" autocomplete="current-password"></label>
+      <label id="pw2l" hidden>Repite la contraseña<input id="pw2" type="password" autocomplete="new-password"></label>
+      <div id="msg" role="alert"></div>
+      <button class="btn" id="go" type="submit">Entrar</button>
+      <button class="link" id="forgot" type="button">¿Olvidaste tu contraseña?</button>
+      <button class="link" id="back" type="button" hidden>Volver</button>
+      <button class="link bad" id="wipe" type="button" hidden>Empezar de cero (borra los datos de este navegador)</button>
+      <div id="google-box"><div class="or">o</div><button class="btn alt" id="google" type="button">Continuar con Google</button></div>
+    </form>
+
+    <div id="rec" hidden>
+      <p class="note">Esta clave es la única forma de recuperar tu cuenta si olvidas la contraseña. Guárdala en un lugar seguro, por ejemplo en un gestor de contraseñas o en una nota de tu Gmail.</p>
+      <div class="code" id="rec-code"></div>
+      <button class="btn alt" id="copy" type="button">Copiar clave</button>
+      <label class="chk"><input type="checkbox" id="saved"> Ya guardé mi clave de recuperación</label>
+      <button class="btn" id="rec-go" type="button" disabled>Continuar</button>
+    </div>
+  </div>
+</div>
+
+<div id="app" hidden>
+<header>
+  <div class="wrap">
+    <div class="top">
+      <h1>Mis finanzas</h1>
+      <div class="who"><span id="who"></span><button class="ghost" id="logout">Cerrar sesión</button></div>
+    </div>
+    <div class="navrow">
+      <nav role="tablist" aria-label="Secciones">
+        <button role="tab" data-tab="res" aria-selected="true">Resumen</button>
+        <button role="tab" data-tab="exp" aria-selected="false">Gastos</button>
+        <button role="tab" data-tab="sav" aria-selected="false">Ahorros</button>
+        <button role="tab" data-tab="loan" aria-selected="false">Préstamos</button>
+        <button role="tab" data-tab="goal" aria-selected="false">Metas</button>
+      </nav>
+      <button class="sumbtn" id="sum-open" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        Resumen del mes
+      </button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section id="res" class="on">
+    <div class="figs">
+      <div class="fig main"><small>Total actual</small><b id="k-sav">$0.00</b></div>
+      <div class="fig"><small>Con préstamos por cobrar</small><b id="k-all">$0.00</b></div>
+      <div class="fig"><small id="k-ml">Gastado este mes</small><b id="k-exp">$0.00</b></div>
+    </div>
+
+    <div class="bar">
+      <label class="per">Ver gastos de
+        <select id="per"></select>
+      </label>
+    </div>
+
+    <div class="charts">
+      <div class="chart"><h2 id="t-cat">Gastos por categoría</h2><div><p class="chart-empty" id="e-cat" hidden>Aún no hay gastos en este período.</p><canvas id="c-cat" role="img" aria-label="Gastos por categoría"></canvas></div><div class="legend" id="legend-cat"></div></div>
+      <div class="chart"><h2>Gastos de los últimos 6 meses</h2><div><canvas id="c-mon" role="img" aria-label="Gastos por mes"></canvas></div></div>
+    </div>
+
+    <h2 class="sec hist-t">Historial de gastos</h2>
+    <p class="hist-sum" id="hist-sum"></p>
+    <div class="boxwrap"><ul id="l-hist" class="sbox"></ul></div>
+
+    <div class="tools">
+      <button class="btn alt" id="bk">Descargar copia</button>
+      <button class="btn alt" id="rs">Restaurar copia</button>
+      <input type="file" id="rsf" accept=".json" hidden>
+    </div>
+  </section>
+
+  <section id="exp">
+    <form class="add" id="f-exp" novalidate>
+      <label>Monto ($)<input name="amount" type="number" step="0.01" min="0.01" inputmode="decimal"></label>
+      <div class="field grow">
+        <span class="lbl" id="cdd-lbl">Categoría</span>
+        <div class="dd" id="cdd">
+          <button type="button" class="dd-btn" id="cdd-btn" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="cdd-lbl cdd-cur"><span class="dd-cur" id="cdd-cur"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+          <input type="hidden" name="cat" id="c-val" value="">
+          <div class="dd-menu" id="cdd-menu" hidden>
+            <div id="cdd-list" role="listbox" aria-labelledby="cdd-lbl"></div>
+            <div class="dd-sep" id="cdd-sep"></div>
+            <button type="button" class="dd-addbtn" id="cdd-addbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Agregar nueva categoría</button>
+          </div>
+        </div>
+      </div>
+      <label>Fecha<input name="date" class="date" type="text" autocomplete="off"></label>
+      <label>Nota<input name="note" maxlength="80" placeholder="Opcional"></label>
+      <button class="btn" type="submit">Agregar gasto</button>
+    </form>
+    <div class="subs-head">
+      <h2 class="sec">Suscripciones</h2>
+      <span class="subs-total" id="subs-total"></span>
+    </div>
+    <p class="hint">Agrega tus pagos recurrentes. Cuando llegue la fecha de pago, el cobro se descuenta solo y aparece en tus gastos.</p>
+    <form class="add" id="f-sub" novalidate>
+      <div class="field grow">
+        <span class="lbl" id="svc-lbl">Servicio</span>
+        <button type="button" class="dd-btn" id="svc-btn" aria-haspopup="dialog" aria-labelledby="svc-lbl svc-cur"><span class="dd-cur" id="svc-cur"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+        <input type="hidden" name="svc" id="svc-val" value="">
+      </div>
+      <div class="field name">
+        <label for="sname">Nombre</label>
+        <div class="inl">
+          <div class="lk"><input name="sname" id="sname" maxlength="30" autocomplete="off" readonly><span class="lk-ico" title="Bloqueado: marca «Editar» para escribir tu propio nombre"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span></div>
+          <label class="edt"><input type="checkbox" id="sname-edit"> Editar</label>
+        </div>
+      </div>
+      <label>Monto ($)<input name="amount" type="number" step="0.01" min="0.01" inputmode="decimal"></label>
+      <label>Se cobra<select name="every"><option value="month">Cada mes</option><option value="year">Cada año</option></select></label>
+      <label>Fecha de pago<input name="date" class="date future" type="text" autocomplete="off"></label>
+      <button class="btn" type="submit">Agregar suscripción</button>
+    </form>
+    <div class="boxwrap subs"><div class="sub-list sbox" id="l-sub"></div></div>
+    <h2 class="sec">Gastos recientes</h2>
+    <div class="boxwrap"><ul id="l-exp" class="sbox"></ul></div>
+  </section>
+
+  <section id="sav">
+    <form class="add" id="f-sav" novalidate>
+      <div class="field grow">
+        <span class="lbl" id="dd-lbl">Tipo de ahorro</span>
+        <div class="dd" id="dd">
+          <button type="button" class="dd-btn" id="dd-btn" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="dd-lbl dd-cur"><span id="dd-cur">Efectivo</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+          <input type="hidden" name="method" id="m-val" value="efectivo">
+          <div class="dd-menu" id="dd-menu" hidden>
+            <div id="dd-list" role="listbox" aria-labelledby="dd-lbl"></div>
+            <div class="dd-sep"></div>
+            <button type="button" class="dd-addbtn" id="dd-addbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Agregar tipo de ahorro</button>
+            <div class="dd-addrow" id="dd-addrow" hidden>
+              <input id="dd-new" maxlength="30" placeholder="Ej. PayPal, Banco Agrícola" autocomplete="off" aria-label="Nombre del nuevo tipo de ahorro">
+              <span class="derr" id="dd-err" role="alert" hidden></span>
+              <div class="dd-btns"><button type="button" class="btn" id="dd-save">Agregar</button><button type="button" class="btn alt" id="dd-cancel">Cancelar</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="field seg-f">
+        <span class="lbl" id="mv-lbl">Movimiento</span>
+        <div class="segm" role="radiogroup" aria-labelledby="mv-lbl">
+          <label class="sg"><input type="radio" name="kind" value="1" checked><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>Aporte</span></label>
+          <label class="sg"><input type="radio" name="kind" value="transfer"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>Transferencia</span></label>
+        </div>
+      </div>
+      <div class="field grow" id="tr-field" hidden>
+        <label for="tr-dest">Pasar a</label>
+        <select name="dest" id="tr-dest" disabled></select>
+      </div>
+      <label>Monto ($)<input name="amount" type="number" step="0.01" min="0.01" inputmode="decimal"></label>
+      <label>Fecha<input name="date" class="date" type="text" autocomplete="off"></label>
+      <label>Nota<input name="note" maxlength="80" placeholder="Opcional"></label>
+      <button class="btn" type="submit">Guardar movimiento</button>
+      <div class="tr-info" id="tr-info" role="status" hidden>
+        <span class="ti-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3l4 4-4 4"/><path d="M21 7H9"/><path d="M7 21l-4-4 4-4"/><path d="M3 17h12"/></svg></span>
+        <div><b>Aún no tienes otra cuenta a la que transferir</b><p>Para pasar dinero de una cuenta a otra necesitas al menos dos tipos de ahorro. Agrega otro (por ejemplo tu banco o PayPal) y podrás mover tu dinero entre ellos.</p></div>
+        <button type="button" class="btn alt" id="tr-add">Agregar tipo de ahorro</button>
+      </div>
+    </form>
+    <h2 class="sec">Ahorros por tipo</h2>
+    <div class="owed" id="m-chips"></div>
+    <h2 class="sec">Movimientos de ahorro</h2>
+    <div class="boxwrap"><ul id="l-sav" class="sbox"></ul></div>
+  </section>
+
+  <section id="loan">
+    <form class="add" id="f-loan" novalidate>
+      <label>Persona<input name="person" maxlength="40" autocomplete="off"></label>
+      <label>Monto prestado ($)<input name="amount" id="l-amt" type="number" step="0.01" min="0.01" inputmode="decimal"></label>
+      <div class="field">
+        <label for="l-back">Monto a devolver ($)</label>
+        <div class="inl">
+          <div class="lk"><input name="back" id="l-back" type="number" step="0.01" min="0.01" inputmode="decimal" readonly><span class="lk-ico" title="Bloqueado: marca «Editar» para cambiarlo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span></div>
+          <label class="edt"><input type="checkbox" id="l-edit"> Editar</label>
+        </div>
+      </div>
+      <label>Fecha<input name="date" class="date" type="text" autocomplete="off"></label>
+      <label>Nota<input name="note" maxlength="80" placeholder="Opcional"></label>
+      <button class="btn" type="submit">Anotar préstamo</button>
+    </form>
+    <h2 class="sec">Lo que te deben</h2>
+    <div class="owed" id="owed"></div>
+    <h2 class="sec">Todos los préstamos</h2>
+    <div class="boxwrap"><ul id="l-loan" class="sbox"></ul></div>
+  </section>
+
+  <section id="goal">
+    <form class="add" id="f-goal" novalidate>
+      <label class="gname-l">Nombre de la meta<input name="gname" maxlength="40" autocomplete="off" placeholder="Ej. Vacaciones, Laptop"></label>
+      <label>Monto a ahorrar ($)<input name="amount" type="number" step="0.01" min="0.01" inputmode="decimal"></label>
+      <label>Fecha de inicio<input name="date" class="date" type="text" autocomplete="off"></label>
+      <label>Fecha final (opcional)<input name="gend" id="g-end" class="date opt future" type="text" autocomplete="off"></label>
+      <button class="btn" type="submit">Crear meta</button>
+    </form>
+    <div class="subs-head">
+      <h2 class="sec">Mis metas</h2>
+      <span class="subs-total" id="goals-total"></span>
+    </div>
+    <div class="goal-list" id="l-goal"></div>
+  </section>
+</main>
+</div>
+
+<div class="modal" id="modal" hidden>
+  <div class="dlg sumdlg" role="dialog" aria-modal="true" aria-labelledby="m-title">
+    <h2 id="m-title">Resumen</h2>
+    <div class="cmp" id="m-grid" role="table" aria-label="Comparación entre el mes anterior y el actual"></div>
+    <div class="m-text" id="m-text"></div>
+    <div class="m-btns">
+      <button class="btn wide" id="m-ok" type="button">Aceptar</button>
+      <button class="btn alt wide" id="m-pdf" type="button">Descargar PDF</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="cmodal" hidden>
+  <div class="dlg cdlg" role="alertdialog" aria-modal="true" aria-labelledby="c-title" aria-describedby="c-text">
+    <div class="c-ico" id="c-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg></div>
+    <h2 id="c-title">¿Estás seguro que quieres eliminar este registro?</h2>
+    <p id="c-text">Esta acción no se puede deshacer.</p>
+    <div class="c-btns">
+      <button class="cbtn red" id="c-yes" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>Sí, quiero eliminarlo</button>
+      <button class="cbtn blue" id="c-no" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>No, no quiero eliminarlo</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="fmodal" hidden>
+  <div class="dlg cdlg fdlg" role="alertdialog" aria-modal="true" aria-labelledby="f-title" aria-describedby="f-text">
+    <div class="c-ico warn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10l9-6 9 6"/><path d="M5 10v9M9 10v9M15 10v9M19 10v9"/><path d="M3 21h18"/></svg></div>
+    <h2 id="f-title">Este tipo de ahorro aún tiene fondos</h2>
+    <p id="f-text"></p>
+    <label class="opt" id="f-opt">
+      <input type="checkbox" id="f-chk">
+      <span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></span>
+      <b>Sí, sí quiero pasarlos a otro tipo de ahorro</b>
+      <span class="opt-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3l4 4-4 4"/><path d="M21 7H9"/><path d="M7 21l-4-4 4-4"/><path d="M3 17h12"/></svg></span>
+    </label>
+    <div class="f-pick" id="f-pick" hidden>
+      <label for="f-dest">Pasar los fondos a</label>
+      <select id="f-dest"></select>
+    </div>
+    <div class="c-btns">
+      <button class="cbtn red" id="f-go" type="button" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>Pasar y eliminar</button>
+      <button class="cbtn blue" id="f-no" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>No, no quiero eliminarlo</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="svcmodal" hidden>
+  <div class="dlg svcdlg" role="dialog" aria-modal="true" aria-labelledby="svc-title">
+    <h2 id="svc-title">Elige un servicio</h2>
+    <input id="svc-search" type="search" autocomplete="off" placeholder="Buscar (Netflix, Spotify, Tigo…)" aria-label="Buscar servicio">
+    <div class="svc-grid" id="svc-grid"></div>
+    <p class="svc-empty" id="svc-empty" hidden>No hay resultados. Usa «Otra suscripción» para escribir el nombre tú mismo.</p>
+    <p class="svc-note">Los íconos de las apps se cargan desde internet; si no hay conexión verás la inicial del servicio.</p>
+    <button class="btn alt wide" id="svc-cancel" type="button">Cancelar</button>
+  </div>
+</div>
+
+<div class="modal" id="gmodal" hidden>
+  <div class="dlg gdlg" role="dialog" aria-modal="true" aria-labelledby="g-title">
+    <h2 id="g-title">Abonar a la meta</h2>
+    <p class="g-sub" id="g-sub"></p>
+    <div class="g-fields">
+      <label>Monto ($)<input id="g-amt" type="number" step="0.01" min="0.01" inputmode="decimal"></label>
+      <label>Fecha<input id="g-date" class="date" type="text" autocomplete="off"></label>
+    </div>
+    <span class="derr" id="g-err" role="alert" hidden></span>
+    <div class="c-btns">
+      <button class="btn" id="g-save" type="button">Abonar</button>
+      <button class="btn alt" id="g-cancel" type="button">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="catmodal" hidden>
+  <div class="dlg catdlg" role="dialog" aria-modal="true" aria-labelledby="cat-title">
+    <h2 id="cat-title">Nueva categoría</h2>
+    <div class="cat-top">
+      <span class="cbadge big" id="cat-prev" aria-hidden="true"></span>
+      <div class="cat-name">
+        <label for="cat-name">Nombre</label>
+        <input id="cat-name" maxlength="24" autocomplete="off" placeholder="Ej. Mascotas, Regalos">
+        <span class="derr" id="cat-err" role="alert" hidden></span>
+      </div>
+    </div>
+    <div class="cat-sec">
+      <span class="lbl" id="cat-color-lbl">Color</span>
+      <div class="swatches" id="cat-swatches" role="radiogroup" aria-labelledby="cat-color-lbl"></div>
+    </div>
+    <div class="cat-sec">
+      <span class="lbl" id="cat-icon-lbl">Ícono</span>
+      <div class="ic-grid" id="cat-icons" role="radiogroup" aria-labelledby="cat-icon-lbl"></div>
+    </div>
+    <div class="c-btns">
+      <button class="btn" id="cat-save" type="button">Guardar categoría</button>
+      <button class="btn alt" id="cat-cancel" type="button">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script src="store.js"></script>
+<script src="icons.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

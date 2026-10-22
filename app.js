@@ -47,6 +47,7 @@ const CHECK = svg('<path d="M5 12l5 5 9-10"/>');
 const CHECKC = svg('<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/>');
 const CLOCK = svg('<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>');
 const FLAG = svg('<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22v-7"/>');
+const EXCL = svg('<path d="M12 8v5"/><path d="M12 17h.01"/>');
 const UNDO = svg('<path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/>');
 /* Color del ícono (blanco u oscuro) según el que tenga más contraste con el fondo */
 const lum = hex => { const n = parseInt(hex.slice(1), 16);
@@ -65,6 +66,22 @@ const prevYm = ym => { let y = +ym.slice(0, 4), m = +ym.slice(5, 7) - 2; if (m <
 
 const B = (window.FIREBASE_CONFIG && window.FIREBASE_CONFIG.apiKey) ? Cloud : Local;
 let D = null, mode = 'in', pending = null, per = 'month';
+
+/* ---------- Avisos arriba (verdes) ---------- */
+function toast(text, kind = 'ok') {
+  const box = $('#toasts');
+  if (!box || !text) return;
+  [...box.children].forEach(t => { if (t.dataset.t === text) t.remove(); });
+  const t = document.createElement('div');
+  t.className = 'toast' + (kind === 'warn' ? ' warn' : ''); t.dataset.t = text;
+  t.setAttribute('role', kind === 'warn' ? 'alert' : 'status');
+  t.innerHTML = `<span class="ti">${kind === 'warn' ? EXCL : CHECK}</span><span>${esc(text)}</span>`;
+  const close = () => { t.classList.add('out'); setTimeout(() => t.remove(), 220); };
+  t.onclick = close;
+  box.appendChild(t);
+  while (box.children.length > 3) box.firstChild.remove();
+  setTimeout(close, kind === 'warn' ? 5000 : 3200);
+}
 
 /* ---------- Mensajes de error del acceso ---------- */
 const ERR = {
@@ -125,6 +142,7 @@ function enter(email, data) {
   $('#lock').hidden = true; $('#app').hidden = false;
   ensureMethods(); ensureSubs(); const goalsFixed = ensureGoals(); const migrated = ensureCats(); const charged = applySubs(); msg(''); render();
   if (migrated || charged || goalsFixed) persist();
+  if (charged) toast('Se registró el cobro de ' + [...new Set(chargedNow)].join(', '));
   openSummaryOnce();
 }
 
@@ -251,7 +269,8 @@ const RULES = {
   dest: { req: 'Elige a qué cuenta pasar el dinero.' },
   svc: { req: 'Elige un servicio u «Otra suscripción».' },
   sname: { req: 'Escribe el nombre de la suscripción.' },
-  gname: { req: 'Escribe el nombre de la meta.' }
+  gname: { req: 'Escribe el nombre de la meta.' },
+  acct: { req: 'Elige de qué cuenta se descontará.' }
 };
 const boxOf = el => el.closest('.field') || el.closest('label');
 function clearErrors(root) {
@@ -335,14 +354,18 @@ function bind(id, fn) {
     const bad = validate(form);
     if (bad) { focusField(bad); return; }
     const f = Object.fromEntries(new FormData(form));
-    fn(f); render();
+    const ok = fn(f); render();
+    if (typeof ok === 'string') toast(ok);
     form.reset();
     const d = form.querySelector('input[name=date]');
     setTimeout(() => { d._flatpickr ? d._flatpickr.setDate(today(), true) : (d.value = today()); }, 0);
     persist();
   });
 }
-bind('#f-exp', f => D.exp.push({ id: uid(), amount: +f.amount, cat: f.cat, date: f.date || today(), note: f.note.trim() }));
+bind('#f-exp', f => {
+  D.exp.push({ id: uid(), amount: +f.amount, cat: f.cat, m: f.acct || 'efectivo', date: f.date || today(), note: f.note.trim() });   // m = cuenta de la que se descuenta
+  return 'Gasto agregado correctamente';
+});
 $('#f-exp').addEventListener('reset', () => { selC = ''; setTimeout(renderCats, 0); });   // sin categoría por defecto
 bind('#f-sav', f => {
   const amt = +f.amount, m = f.method || 'efectivo', date = f.date || today(), note = f.note.trim();
@@ -351,12 +374,19 @@ bind('#f-sav', f => {
     D.sav.push({ id: uid(), amount: -amt, m, date, note, tr: 'out', to: f.dest, tid },
                { id: uid(), amount: amt, m: f.dest, date, note, tr: 'in', from: m, tid });
   } else D.sav.push({ id: uid(), amount: amt, m, date, note });
+  return f.kind === 'transfer' ? 'Transferencia realizada correctamente' : 'Aporte ingresado correctamente';
 });
 $('#f-sav').addEventListener('reset', () => setTimeout(() => { syncMethod(); syncTransfer(); }, 0));
 $('#f-sav').addEventListener('change', e => { if (e.target.name === 'kind') syncTransfer(); });
 $('#tr-add').onclick = () => setTimeout(() => { $('#dd').scrollIntoView({ block: 'center', behavior: 'smooth' }); openDd(); toggleAdd(true); }, 0);
-bind('#f-loan', f => D.loan.push({ id: uid(), person: f.person.trim(), amount: +f.amount, back: +(f.back || f.amount), date: f.date || today(), note: f.note.trim(), paid: false }));
-bind('#f-goal', f => D.goals.push({ id: uid(), name: f.gname.trim(), target: +f.amount, start: f.date || today(), end: f.gend || '', adds: [], created: today() }));
+bind('#f-loan', f => {
+  D.loan.push({ id: uid(), person: f.person.trim(), amount: +f.amount, back: +(f.back || f.amount), date: f.date || today(), note: f.note.trim(), paid: false });
+  return 'Préstamo anotado correctamente';
+});
+bind('#f-goal', f => {
+  D.goals.push({ id: uid(), name: f.gname.trim(), target: +f.amount, start: f.date || today(), end: f.gend || '', adds: [], created: today() });
+  return 'Meta creada correctamente';
+});
 $('#f-goal').addEventListener('reset', () => setTimeout(() => { const e = $('#g-end'); e._flatpickr ? e._flatpickr.clear() : (e.value = ''); }, 0));
 
 /* Monto a devolver: copia el monto prestado salvo que se active "Editar" */
@@ -371,18 +401,22 @@ $('#f-loan').addEventListener('reset', () => { lBack.readOnly = true; lEdit.clos
 
 document.addEventListener('click', async e => {
   const del = e.target.closest('[data-del]'), paid = e.target.closest('[data-paid]');
+  let done = '';
   if (del) {
     const [k, id] = del.dataset.del.split(':');
     if (!(await askDelete(describe(k, id)))) return;
     const tid = (D[k].find(x => x.id === id) || {}).tid;     // una transferencia son dos movimientos
     D[k] = D[k].filter(x => x.id !== id && !(tid && x.tid === tid));
+    done = { exp: 'Gasto eliminado correctamente', sav: 'Movimiento eliminado correctamente', loan: 'Préstamo eliminado correctamente' }[k] || 'Registro eliminado correctamente';
   } else if (paid) {
     const l = D.loan.find(x => x.id === paid.dataset.paid);
     if (!l) return;
     if (!(await (l.paid ? askReopen(l) : askPaid(l)))) return;
     l.paid = !l.paid;
+    done = l.paid ? 'Préstamo marcado como cobrado' : 'Préstamo reabierto como pendiente';
   } else return;
   render(); persist();            // primero se muestra el cambio y luego se guarda, para que no haya espera
+  toast(done);
 });
 
 /* ---------- Período del historial ---------- */
@@ -606,7 +640,9 @@ const methodOf = id => D.met.find(m => m.id === (id || 'efectivo')) || { id: 'ef
 const savLabel = s => s.tr === 'out' ? 'Transferencia a ' + methodOf(s.to).name
   : s.tr === 'in' ? 'Transferencia desde ' + methodOf(s.from).name
   : (s.amount >= 0 ? 'Aporte a ' : 'Salida de ') + methodOf(s.m).name;
-const balanceOf = id => r2(sum(D.sav.filter(s => (s.m || 'efectivo') === id)));
+/* Saldo de una cuenta = sus aportes/transferencias menos los gastos (y cobros de suscripciones) que se le descontaron.
+   Los gastos viejos, anotados antes de existir este campo, no tienen cuenta y no se descuentan. */
+const balanceOf = id => r2(sum(D.sav.filter(s => (s.m || 'efectivo') === id)) - sum(D.exp.filter(e => e.m === id)));
 
 function syncMethod() {
   if (!D) return;
@@ -619,9 +655,21 @@ function renderMethods() {
   $('#dd-list').innerHTML = activeMethods().map(m => `<div class="dd-item${m.id === selM ? ' sel' : ''}" role="option" aria-selected="${m.id === selM}" tabindex="0" data-mid="${m.id}">
     <span class="dd-ico">${m.id === 'efectivo' ? CASH : BANK}</span><span class="dd-name">${esc(m.name)}</span><span class="dd-bal">${money(balanceOf(m.id))}</span>
     ${m.id === 'efectivo' ? '' : `<button type="button" class="dd-del" data-mdel="${m.id}" aria-label="Eliminar ${esc(m.name)}" title="Eliminar">${TRASH}</button>`}</div>`).join('');
-  $('#m-chips').innerHTML = activeMethods().map(m => `<span>${esc(m.name)}: <b>${money(balanceOf(m.id))}</b></span>`).join('')
+  $('#m-chips').innerHTML = activeMethods().map(m => `<span>${esc(m.name)}: <b class="${balanceOf(m.id) < 0 ? 'neg' : ''}">${money(balanceOf(m.id))}</b></span>`).join('')
     + D.goals.map(g => `<span class="gchip">${FLAG}Meta · ${esc(g.name)}: <b>${money(gSaved(g))}</b></span>`).join('');
   syncTransfer();
+  syncAcct();
+}
+/* Campo "Cuenta" de Gastos y Suscripciones: solo aparece si hay más de una cuenta de ahorro */
+function syncAcct() {
+  if (!D) return;
+  const list = activeMethods(), show = list.length > 1;
+  [['#ex-acct', '#ex-acct-field'], ['#sub-acct', '#sub-acct-field']].forEach(([s, f]) => {
+    const sel = $(s), keep = sel.value;
+    sel.innerHTML = '<option value="">Elige una cuenta</option>' + list.map(m => `<option value="${esc(m.id)}">${esc(m.name)} (${money(balanceOf(m.id))})</option>`).join('');
+    sel.value = list.some(m => m.id === keep) ? keep : '';
+    $(f).hidden = !show; sel.disabled = !show;
+  });
 }
 /* Transferencia: lista las demás cuentas (sin la elegida) o avisa que no hay otra */
 function syncTransfer() {
@@ -673,7 +721,7 @@ async function addMethod() {
   if (activeMethods().some(m => m.name.toLowerCase() === name.toLowerCase())) return fail('Ya existe un tipo de ahorro con ese nombre.');
   const m = { id: uid(), name };
   D.met.push(m); selM = m.id;
-  closeDd(); render(); await persist();
+  closeDd(); render(); toast('Tipo de ahorro agregado correctamente'); await persist();
 }
 
 /* Eliminar un tipo de ahorro: solo con $0, o pasando antes los fondos a otro tipo */
@@ -705,6 +753,7 @@ async function deleteMethod(id) {
   if (!m || id === 'efectivo') return;
   closeDd();
   const bal = balanceOf(id);
+  if (bal < -0.005) return toast(`«${m.name}» tiene saldo negativo (${money(bal)}). Registra un aporte para dejarlo en $0.00 y podrás eliminarlo.`, 'warn');
   if (Math.abs(bal) < 0.005) {
     if (!(await askDelete(`el tipo de ahorro «${m.name}»`, '¿Estás seguro que quieres eliminar este tipo de ahorro?'))) return;
   } else {
@@ -717,7 +766,7 @@ async function deleteMethod(id) {
   }
   m.deleted = true;               // se oculta, pero su historial queda con nombre
   if (selM === id) selM = 'efectivo';
-  render(); await persist();
+  render(); toast('Tipo de ahorro eliminado correctamente'); await persist();
 }
 
 /* ---------- Categorías de gastos ---------- */
@@ -848,7 +897,7 @@ async function saveCat() {
     D.cats.push(c); selC = c.id; clearFieldError($('#c-val'));      // la nueva queda elegida
   }
   const closing = closeCat();
-  render(); await persist();
+  render(); toast(catEdit ? 'Categoría actualizada correctamente' : 'Categoría creada correctamente'); await persist();
   await closing;
 }
 
@@ -862,7 +911,7 @@ async function deleteCat(id) {
   if (!(await askDelete(desc, '¿Estás seguro que quieres eliminar esta categoría?'))) return;
   if (n) c.deleted = true; else D.cats = D.cats.filter(x => x.id !== id);
   if (selC === id) selC = '';
-  render(); await persist();
+  render(); toast('Categoría eliminada correctamente'); await persist();
 }
 
 /* ---------- Suscripciones ---------- */
@@ -912,14 +961,18 @@ function subCat() {
   return c;
 }
 /* Descuenta los cobros cuya fecha ya llegó (también los atrasados si la app estuvo cerrada). Devuelve true si cambió algo. */
+let chargedNow = [];     // nombres de las suscripciones cobradas en la última revisión
 function applySubs() {
   if (!D) return false;
   let changed = false;
+  chargedNow = [];
   const t = today();
   D.subs.forEach(s => {
     let n = 0;
     while (s.next <= t && n++ < 240) {
-      D.exp.push({ id: uid(), amount: s.amount, cat: subCat().id, date: s.next, note: s.name + ' (suscripción)', sub: s.id });
+      const acct = s.m && D.met.some(x => x.id === s.m && !x.deleted) ? s.m : (s.m ? 'efectivo' : undefined);   // si la cuenta ya no existe, sale de Efectivo
+      D.exp.push({ id: uid(), amount: s.amount, cat: subCat().id, m: acct, date: s.next, note: s.name + ' (suscripción)', sub: s.id });
+      chargedNow.push(s.name);
       s.next = addPeriod(s.next, s.day || +s.next.slice(8, 10), s.every === 'year' ? 12 : 1);
       changed = true;
     }
@@ -928,7 +981,7 @@ function applySubs() {
 }
 async function tick() {
   if (!D || $('#app').hidden) return;
-  if (applySubs()) { render(); await persist(); }
+  if (applySubs()) { render(); toast('Se registró el cobro de ' + [...new Set(chargedNow)].join(', ')); await persist(); }
 }
 setInterval(tick, 60000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(); });
@@ -944,7 +997,7 @@ function renderSubs() {
     const days = Math.round((new Date(s.next + 'T12:00') - new Date(today() + 'T12:00')) / 864e5);
     const when = days <= 0 ? 'hoy' : days === 1 ? 'mañana' : `en ${days} días`;
     return `<article class="sub" style="--sc:${barColor(svcOf(s.svc))}">
-      <div class="sub-top">${sbadge(s.svc)}<div><b>${esc(s.name)}</b><small>${money(s.amount)} · ${s.every === 'year' ? 'cada año' : 'cada mes'}</small></div>
+      <div class="sub-top">${sbadge(s.svc)}<div><b>${esc(s.name)}</b><small>${money(s.amount)} · ${s.every === 'year' ? 'cada año' : 'cada mes'}${s.m && activeMethods().length > 1 ? ' · ' + esc(methodOf(s.m).name) : ''}</small></div>
         <button type="button" class="x" data-sdel="${esc(s.id)}" aria-label="Eliminar suscripción ${esc(s.name)}" title="Eliminar suscripción">${TRASH}</button></div>
       <div class="sub-next"><span><small>Próximo pago</small><b>${fdate(s.next)}</b></span><span class="chip${days <= 3 ? ' soon' : ''}">${when}</span></div>
     </article>`;
@@ -957,7 +1010,7 @@ $('#l-sub').addEventListener('click', async e => {
   if (!s) return;
   if (!(await askDelete(`la suscripción «${s.name}» (ya no se cobrará más; los pagos que ya se descontaron se quedan en tus gastos)`, '¿Estás seguro que quieres eliminar esta suscripción?'))) return;
   D.subs = D.subs.filter(x => x.id !== s.id);
-  render(); await persist();
+  render(); toast('Suscripción eliminada correctamente'); await persist();
 });
 
 /* Selector de servicio */
@@ -1020,8 +1073,10 @@ setNameLock(true);
 syncSvc();
 bind('#f-sub', f => {
   const next = f.date || today();
-  D.subs.push({ id: uid(), name: f.sname.trim(), svc: f.svc, amount: +f.amount, every: f.every === 'year' ? 'year' : 'month', next, day: +next.slice(8, 10), created: today() });
+  D.subs.push({ id: uid(), name: f.sname.trim(), svc: f.svc, amount: +f.amount, m: f.acct || 'efectivo', every: f.every === 'year' ? 'year' : 'month', next, day: +next.slice(8, 10), created: today() });
+  const n = D.exp.length;
   applySubs();           // si el pago es hoy, se registra enseguida
+  return D.exp.length > n ? 'Suscripción agregada correctamente. El cobro de hoy ya se registró' : 'Suscripción agregada correctamente';
 });
 
 /* ---------- Metas de ahorro ---------- */
@@ -1090,7 +1145,7 @@ async function saveG() {
   if (!(a > 0)) { err.textContent = 'Escribe un monto mayor que 0.'; err.hidden = false; $('#g-amt').focus(); return; }
   g.adds.push({ id: uid(), amount: a, date: d });
   const closing = closeG();
-  render(); persist();
+  render(); persist(); toast('Abono registrado correctamente');
   await closing;
 }
 $('#g-save').onclick = saveG;
@@ -1105,11 +1160,13 @@ $('#l-goal').addEventListener('click', async e => {
     if (!g) return;
     if (!(await askDelete(`la meta «${g.name}»${g.adds.length ? ` (se perderán sus ${g.adds.length} ${g.adds.length === 1 ? 'abono' : 'abonos'}, ${money(gSaved(g))})` : ''}`, '¿Estás seguro que quieres eliminar esta meta?'))) return;
     D.goals = D.goals.filter(x => x.id !== g.id);
+    toast('Meta eliminada correctamente');
   } else if (abd) {
     const [gid, aid] = abd.dataset.gabdel.split(':'), g = D.goals.find(x => x.id === gid), a = g && g.adds.find(x => x.id === aid);
     if (!a) return;
     if (!(await askDelete(`el abono de ${money(a.amount)} del ${fdate(a.date)}`))) return;
     g.adds = g.adds.filter(x => x.id !== aid);
+    toast('Abono eliminado correctamente');
   } else return;
   render(); persist();
 });
@@ -1133,7 +1190,8 @@ function row(main, sub, amt, k, id, neg, extra, cls, ico) {
   return `<li class="${cls || ''}">${ico ? `<div class="lead">${ico}${text}</div>` : text}<span class="amt ${neg ? 'neg' : ''}">${amt}</span><span>${extra || ''}<button class="x" data-del="${k}:${id}" aria-label="Eliminar registro" title="Eliminar">${TRASH}</button></span></li>`;
 }
 const expRow = e => { const c = catOf(e.cat);
-  return row(esc(c.name), fdate(e.date) + (e.note ? '. ' + esc(e.note) : ''), money(e.amount), 'exp', e.id, true, '', '', badge(c)); };
+  const acc = e.m && (activeMethods().length > 1 || e.m !== 'efectivo') ? ' · ' + esc(methodOf(e.m).name) : '';   // de qué cuenta salió
+  return row(esc(c.name), fdate(e.date) + acc + (e.note ? '. ' + esc(e.note) : ''), money(e.amount), 'exp', e.id, true, '', '', badge(c)); };
 const savRow = s => row(esc(savLabel(s)), fdate(s.date) + (s.note ? '. ' + esc(s.note) : ''), money(s.amount), 'sav', s.id, s.amount < 0);
 const loanRow = l => row(esc(l.person), `${fdate(l.date)}. Prestado ${money(l.amount)}` + (l.note ? '. ' + esc(l.note) : ''), money(getBack(l)), 'loan', l.id, false,
   `<button class="btn alt sm" data-paid="${l.id}">${l.paid ? 'Reabrir' : 'Cobrado'}</button>`, l.paid ? 'done' : '');
@@ -1245,6 +1303,7 @@ $('#bk').onclick = () => {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([JSON.stringify(D)], { type: 'application/json' }));
   a.download = 'copia-finanzas-' + today() + '.json'; a.click(); URL.revokeObjectURL(a.href);
+  toast('Copia descargada correctamente');
 };
 $('#rs').onclick = () => $('#rsf').click();
 $('#rsf').onchange = async e => {
@@ -1254,7 +1313,7 @@ $('#rsf').onchange = async e => {
     if (!Array.isArray(j.sav) || !Array.isArray(j.exp) || !Array.isArray(j.loan)) throw 0;
     if (!confirm('Esto reemplaza todos tus datos actuales. ¿Continuar?')) return;
     D = { sav: j.sav, exp: j.exp, loan: j.loan, met: Array.isArray(j.met) ? j.met : [], cats: Array.isArray(j.cats) ? j.cats : undefined, subs: Array.isArray(j.subs) ? j.subs : [], goals: Array.isArray(j.goals) ? j.goals : [] };
-    ensureMethods(); ensureGoals(); ensureCats(); applySubs(); render(); await persist();
+    ensureMethods(); ensureGoals(); ensureCats(); applySubs(); render(); toast('Copia restaurada correctamente'); await persist();
   } catch { alert('El archivo no es una copia válida.'); }
   e.target.value = '';
 };

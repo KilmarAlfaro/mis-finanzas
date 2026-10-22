@@ -46,6 +46,7 @@ const SHIELD = svg('<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path
 const CHECK = svg('<path d="M5 12l5 5 9-10"/>');
 const CHECKC = svg('<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/>');
 const CLOCK = svg('<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>');
+const FLAG = svg('<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22v-7"/>');
 const UNDO = svg('<path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/>');
 /* Color del ícono (blanco u oscuro) según el que tenga más contraste con el fondo */
 const lum = hex => { const n = parseInt(hex.slice(1), 16);
@@ -476,8 +477,9 @@ function chg(c, p, goodUp) {
 }
 /* Cuadrícula comparativa: mes anterior contra mes actual, con cambio por fila */
 function summaryGrid(s) {
-  const tot = (label, p, c, goodUp) => `<div class="cmp-r tot"><span class="cl"><b>${label}</b></span><span class="v">${money(p)}</span><span class="v">${money(c)}</span><span class="ch">${chg(c, p, goodUp)}</span></div>`;
-  const rows = catRows(s).map(x => `<div class="cmp-r"><span class="cl">${ctag(x.c)}</span><span class="v${x.p ? '' : ' z'}">${x.p ? money(x.p) : '—'}</span><span class="v${x.v ? '' : ' z'}">${x.v ? money(x.v) : '—'}</span><span class="ch">${!x.p ? '<span class="chg bad">Nuevo</span>' : !x.v ? '<span class="chg good">Sin gastos</span>' : chg(x.v, x.p, false)}</span></div>`).join('');
+  const L1 = cap(s.pmes), L2 = cap(s.mes);
+  const tot = (label, p, c, goodUp) => `<div class="cmp-r tot"><span class="cl"><b>${label}</b></span><span class="v" data-l="${L1}">${money(p)}</span><span class="v" data-l="${L2}">${money(c)}</span><span class="ch" data-l="Cambio">${chg(c, p, goodUp)}</span></div>`;
+  const rows = catRows(s).map(x => `<div class="cmp-r"><span class="cl">${ctag(x.c)}</span><span class="v${x.p ? '' : ' z'}" data-l="${L1}">${x.p ? money(x.p) : '—'}</span><span class="v${x.v ? '' : ' z'}" data-l="${L2}">${x.v ? money(x.v) : '—'}</span><span class="ch" data-l="Cambio">${!x.p ? '<span class="chg bad">Nuevo</span>' : !x.v ? '<span class="chg good">Sin gastos</span>' : chg(x.v, x.p, false)}</span></div>`).join('');
   return `<div class="cmp-h"><span></span><span>${cap(s.pmes)}</span><span>${cap(s.mes)}</span><span>Cambio</span></div>
     ${tot('Total gastado', s.pspent, s.spent, false)}${tot('Total ahorrado', s.psaved, s.saved, true)}
     <div class="cmp-sub">Gastos por categoría</div>
@@ -617,7 +619,8 @@ function renderMethods() {
   $('#dd-list').innerHTML = activeMethods().map(m => `<div class="dd-item${m.id === selM ? ' sel' : ''}" role="option" aria-selected="${m.id === selM}" tabindex="0" data-mid="${m.id}">
     <span class="dd-ico">${m.id === 'efectivo' ? CASH : BANK}</span><span class="dd-name">${esc(m.name)}</span><span class="dd-bal">${money(balanceOf(m.id))}</span>
     ${m.id === 'efectivo' ? '' : `<button type="button" class="dd-del" data-mdel="${m.id}" aria-label="Eliminar ${esc(m.name)}" title="Eliminar">${TRASH}</button>`}</div>`).join('');
-  $('#m-chips').innerHTML = activeMethods().map(m => `<span>${esc(m.name)}: <b>${money(balanceOf(m.id))}</b></span>`).join('');
+  $('#m-chips').innerHTML = activeMethods().map(m => `<span>${esc(m.name)}: <b>${money(balanceOf(m.id))}</b></span>`).join('')
+    + D.goals.map(g => `<span class="gchip">${FLAG}Meta · ${esc(g.name)}: <b>${money(gSaved(g))}</b></span>`).join('');
   syncTransfer();
 }
 /* Transferencia: lista las demás cuentas (sin la elegida) o avisa que no hay otra */
@@ -1164,6 +1167,15 @@ function render() {
   $('#k-sav').textContent = money(actual); $('#k-sav').classList.toggle('neg', actual < 0);
   $('#k-all').textContent = money(conPrest); $('#k-all').classList.toggle('neg', conPrest < 0);
   $('#k-exp').textContent = money(sum(mexp));
+  /* Por defecto solo "Total actual" y "Gastado en…". Las otras aparecen solo si hay con qué calcularlas */
+  const metas = r2(sumBy(D.goals, gSaved)), conMetas = actual + metas;
+  $('#k-goal').textContent = money(conMetas); $('#k-goal').classList.toggle('neg', conMetas < 0);
+  $('#f-goals').hidden = !(metas > 0);                       // hay dinero abonado a metas
+  $('#f-owed').hidden = !D.loan.some(l => !l.paid);          // hay gente que te debe
+  const figs = [...document.querySelectorAll('.figs .fig')].filter(e => !e.hidden), rest = figs.filter(e => !e.classList.contains('main'));
+  $('.figs').dataset.n = figs.length;
+  figs.forEach(e => e.classList.remove('wide'));
+  if (rest.length % 2 === 1) rest[rest.length - 1].classList.add('wide');   // en móvil, si queda uno suelto ocupa todo el ancho
   $('#k-ml').textContent = 'Gastado en ' + new Date().toLocaleDateString('es', { month: 'long' });
 
   /* Listas */

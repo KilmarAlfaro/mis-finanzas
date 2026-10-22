@@ -119,8 +119,12 @@
           </div>
         </div>
       </div>
+      <div class="field" id="ex-acct-field" hidden>
+        <label for="ex-acct">Cuenta</label>
+        <select name="acct" id="ex-acct" disabled></select>
+      </div>
       <label>Fecha<input name="date" class="date" type="text" autocomplete="off"></label>
-      <label>Nota<input name="note" maxlength="80" placeholder="Opcional"></label>
+      <label>Nota<input name="note" maxlength="80" placeholder="Opcional" autocomplete="off"></label>
       <button class="btn" type="submit">Agregar gasto</button>
     </form>
     <div class="subs-head">
@@ -140,6 +144,10 @@
           <div class="lk"><input name="sname" id="sname" maxlength="30" autocomplete="off" readonly><span class="lk-ico" title="Bloqueado: marca «Editar» para escribir tu propio nombre"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span></div>
           <label class="edt"><input type="checkbox" id="sname-edit"> Editar</label>
         </div>
+      </div>
+      <div class="field" id="sub-acct-field" hidden>
+        <label for="sub-acct">Cuenta</label>
+        <select name="acct" id="sub-acct" disabled></select>
       </div>
       <label>Monto ($)<input name="amount" type="number" step="0.01" min="0.01" inputmode="decimal"></label>
       <label>Se cobra<select name="every"><option value="month">Cada mes</option><option value="year">Cada año</option></select></label>
@@ -183,7 +191,7 @@
       </div>
       <label>Monto ($)<input name="amount" type="number" step="0.01" min="0.01" inputmode="decimal"></label>
       <label>Fecha<input name="date" class="date" type="text" autocomplete="off"></label>
-      <label>Nota<input name="note" maxlength="80" placeholder="Opcional"></label>
+      <label>Nota<input name="note" maxlength="80" placeholder="Opcional" autocomplete="off"></label>
       <button class="btn" type="submit">Guardar movimiento</button>
       <div class="tr-info" id="tr-info" role="status" hidden>
         <span class="ti-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3l4 4-4 4"/><path d="M21 7H9"/><path d="M7 21l-4-4 4-4"/><path d="M3 17h12"/></svg></span>
@@ -209,7 +217,7 @@
         </div>
       </div>
       <label>Fecha<input name="date" class="date" type="text" autocomplete="off"></label>
-      <label>Nota<input name="note" maxlength="80" placeholder="Opcional"></label>
+      <label>Nota<input name="note" maxlength="80" placeholder="Opcional" autocomplete="off"></label>
       <button class="btn" type="submit">Anotar préstamo</button>
     </form>
     <h2 class="sec">Lo que te deben</h2>
@@ -334,9 +342,11 @@
   </div>
 </div>
 
+<div id="toasts" aria-live="polite"></div>
+
 <script src="config.js"></script>
 <script src="store.js"></script>
 <script src="icons.js"></script>
 <script src="app.js"></script>
 </body>
-</html>
+  </html>

@@ -677,3 +677,63 @@ li small{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;ov
 }
 .top{column-gap:.6rem}
 .top h1{font-size:clamp(1.2rem,6.2vw,1.6rem)}
+
+/* =====================================================================
+   Cifras del Resumen (1 a 4 según lo que aplique), pestañas y resumen del mes
+   ===================================================================== */
+.figs{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr)}
+.figs[data-n="3"] .fig b{font-size:clamp(1.5rem,3.8vw,2.4rem)}
+.figs[data-n="4"] .fig b{font-size:clamp(1.35rem,2.9vw,2rem)}
+nav button svg{display:none}
+
+/* Metas dentro de "Ahorros por tipo" */
+.owed span.gchip{display:inline-flex;align-items:center;gap:.4rem;background:#fff;border:1.5px solid #8FCDB9;color:var(--acc)}
+.gchip svg{width:1em;height:1em;flex:none}
+
+/* Cifras: números largos se acomodan en vez de montarse */
+.cmp-r .v{white-space:normal;overflow-wrap:anywhere}
+.chg{max-width:100%;white-space:normal}
+
+@media(max-width:640px){
+  /* Pestañas: las cinco siempre a la vista, con ícono arriba y nombre abajo (como una app) */
+  nav{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));overflow:visible;gap:0;margin-top:.9rem}
+  nav button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.25rem;padding:.55rem .1rem .6rem;font-size:.72rem;line-height:1.1;white-space:nowrap;min-width:0}
+  nav button svg{display:block;width:1.35rem;height:1.35rem;flex:none}
+  nav button span{max-width:100%;overflow:hidden;text-overflow:ellipsis}
+
+  /* Cifras: la principal arriba y las demás en tarjetas de dos columnas */
+  .figs{grid-auto-flow:row;grid-auto-columns:auto;grid-template-columns:repeat(2,minmax(0,1fr));gap:.7rem;border-bottom:0;margin-bottom:1.4rem}
+  .fig,.fig+.fig{padding:0;border-left:0}
+  .fig.main{grid-column:1/-1;padding:0 0 .2rem;margin:0;border-bottom:0}
+  .fig:not(.main){background:#fff;border-radius:12px;padding:.8rem .9rem}
+  .fig.wide{grid-column:1/-1}
+  .figs[data-n] .fig b{font-size:clamp(1.3rem,7vw,1.7rem)}
+  .figs[data-n] .fig.main b{font-size:clamp(1.9rem,10vw,2.5rem)}
+
+  /* Resumen del mes: cada fila pasa a tarjeta; el nombre arriba y cada cifra con su mes encima */
+  .cmp-h{display:none}
+  .cmp-r{grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.25fr);gap:.45rem .5rem;align-items:start;padding:.65rem .75rem}
+  .cmp-r>.cl{grid-column:1/-1}
+  .cmp-r .v,.cmp-r .ch{justify-self:start;text-align:left;font-size:.92rem;min-width:0}
+  .cmp-r .v:before,.cmp-r .ch:before{content:attr(data-l);display:block;margin-bottom:.15rem;font-size:.66rem;font-weight:800;color:var(--mute);text-transform:uppercase;letter-spacing:.03em;white-space:nowrap}
+  .chg{font-size:.74rem}
+}
+@media(max-width:640px){.navrow nav{flex:1 1 100%}}
+@media(max-width:340px){nav button{font-size:.66rem}}
+.charts{grid-template-columns:repeat(2,minmax(0,1fr))}
+.chart{min-width:0}
+@media(max-width:640px){.charts{grid-template-columns:minmax(0,1fr)}}
+.lg-i .v{white-space:normal;text-align:right;overflow-wrap:anywhere}
+
+/* Resumen del mes en móvil: una línea por mes (mes a la izquierda, cantidad a la derecha); los números nunca se parten */
+@media(max-width:640px){
+  .cmp-r{grid-template-columns:minmax(0,1fr);gap:.3rem;align-items:stretch}
+  .cmp-r .v,.cmp-r .ch{display:flex;align-items:center;justify-content:space-between;gap:.6rem;width:100%;text-align:right;white-space:nowrap;overflow-wrap:normal;font-size:.95rem}
+  .cmp-r .v:before,.cmp-r .ch:before{display:inline;margin:0;font-size:.7rem}
+}
+@media(max-width:640px){
+  .figs[data-n] .fig:not(.main):not(.wide) b{font-size:clamp(1rem,4.8vw,1.4rem)}
+  .fig:not(.main) small{font-size:.85rem}
+}
+.fig{display:flex;flex-direction:column}
+.fig b{margin-top:auto;padding-top:.2rem}

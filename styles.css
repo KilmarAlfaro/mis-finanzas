@@ -85,7 +85,7 @@ li .x:hover{background:var(--acc2);color:var(--bad)}
 li.done b,li.done .amt{text-decoration:line-through;color:var(--mute)}
 .empty{padding:1.6rem 1.3rem;color:var(--mute);text-align:center}
 .owed{display:flex;flex-wrap:wrap;gap:.6rem;margin-bottom:1.6rem}
-.owed span{background:var(--acc2);color:var(--acc);padding:.45rem 1rem;border-radius:99px;font-size:1rem;font-weight:500}
+.owed>span{background:var(--acc2);color:var(--acc);padding:.45rem 1rem;border-radius:99px;font-size:1rem;font-weight:500}
 .owed b{font-weight:800}
 .tools{display:flex;gap:.8rem;flex-wrap:wrap;margin-top:2rem}
 .tools .btn{align-self:auto}
@@ -752,3 +752,42 @@ nav button svg{display:none}
 /* Campo "Cuenta" (solo aparece con más de una cuenta de ahorro) */
 #f-exp>#ex-acct-field,#f-sub>#sub-acct-field{flex:1 1 12.5rem}
 .owed b.neg{color:var(--bad)}
+
+/* ===== Cuentas de ahorro: ícono, color y ventana de crear/editar ===== */
+#dd-btn{padding-top:.35rem;padding-bottom:.35rem}
+#dd-menu{width:min(23rem,calc(100vw - 3rem))}
+.sbadge.big{width:3.6rem;height:3.6rem;border-radius:16px;font-size:1.35rem}
+.sbadge.big[data-l="3"]{font-size:1.1rem}
+.sbadge.big[data-l="4"],.sbadge.big[data-l="5"]{font-size:.9rem}
+.sbadge.big svg{width:1.9rem;height:1.9rem}
+.sbadge.big.has-img img{padding:.4rem}
+.owed>span.achip{display:inline-flex;align-items:center;gap:.5rem;background:#fff;border:2px solid var(--acc2);padding:.25rem .95rem .25rem .3rem}
+.owed>span.achip .sbadge,.owed>span.achip .cbadge{flex:none}
+#accmodal{z-index:55}
+.accdlg{max-width:44rem;max-height:calc(100vh - 2.4rem);max-height:calc(100dvh - 2.4rem);overflow:auto;gap:1.1rem}
+.acc-prev{display:block;flex:none;margin-top:1.8rem}
+.acc-prev .cbadge{margin-top:0}
+#acc-search,.accdlg .cat-name input{width:100%;padding:.7rem .9rem;border:1px solid #AEBFB9;border-radius:10px;background:#fff;min-height:3rem}
+.ic-grid.acc-grid{max-height:min(24rem,42vh)}
+.bk-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(11rem,1fr));gap:.45rem}
+.bk{position:relative;display:block;margin:0;cursor:pointer}
+.bk input{position:absolute;opacity:0;inset:0;width:100%;height:100%;margin:0;cursor:pointer}
+.bk-in{display:flex;align-items:center;gap:.6rem;min-height:3.2rem;padding:.4rem .6rem;border:2px solid transparent;border-radius:12px;background:#F1F6F4;color:var(--ink);font-size:.88rem;font-weight:700;line-height:1.2;transition:background .12s}
+.bk-in .nm{min-width:0;overflow-wrap:anywhere}
+.bk:hover .bk-in{background:var(--acc2)}
+.bk input:checked+.bk-in{border-color:var(--acc);background:#fff}
+.bk input:focus-visible+.bk-in{outline:3px solid var(--acc);outline-offset:2px}
+.acc-empty{margin:0;padding:.6rem;color:var(--mute);text-align:center;font-size:.92rem}
+@media(max-width:480px){.bk-row{grid-template-columns:repeat(2,minmax(0,1fr))}.accdlg{padding:1.2rem}}
+
+/* Menú de cuentas: el saldo va debajo del nombre, así los nombres largos y los saldos grandes nunca se montan */
+#dd-list .dd-item{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:center;column-gap:.6rem;row-gap:0}
+#dd-list .dd-item>:first-child{grid-row:1/3}
+#dd-list .dd-name{grid-column:2;grid-row:1}
+#dd-list .dd-bal{grid-column:2;grid-row:2;font-size:.85rem;white-space:normal;overflow-wrap:anywhere}
+#dd-list .dd-del{grid-row:1/3}
+#dd-list .dd-edit{grid-column:3}
+#dd-list .dd-del:not(.dd-edit){grid-column:4}
+li b{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.bk-in .nm{overflow-wrap:break-word}
+@media(max-width:480px){.bk-row{grid-template-columns:minmax(0,1fr)}}

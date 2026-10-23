@@ -223,7 +223,7 @@ async function persist() {
 /* ---------- Navegación ---------- */
 document.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => {
   document.querySelectorAll('form.add').forEach(clearErrors);   // los avisos no se arrastran entre pestañas
-  closeDd(); closeCdd(); $('#dd-err').hidden = true;
+  closeDd(); closeCdd();
   document.querySelectorAll('[data-tab]').forEach(x => x.setAttribute('aria-selected', x === b));
   document.querySelectorAll('main section').forEach(s => s.classList.toggle('on', s.id === b.dataset.tab));
   if (b.dataset.tab === 'res') render();
@@ -378,7 +378,7 @@ bind('#f-sav', f => {
 });
 $('#f-sav').addEventListener('reset', () => setTimeout(() => { syncMethod(); syncTransfer(); }, 0));
 $('#f-sav').addEventListener('change', e => { if (e.target.name === 'kind') syncTransfer(); });
-$('#tr-add').onclick = () => setTimeout(() => { $('#dd').scrollIntoView({ block: 'center', behavior: 'smooth' }); openDd(); toggleAdd(true); }, 0);
+$('#tr-add').onclick = () => setTimeout(() => openAcc(null), 0);
 bind('#f-loan', f => {
   D.loan.push({ id: uid(), person: f.person.trim(), amount: +f.amount, back: +(f.back || f.amount), date: f.date || today(), note: f.note.trim(), paid: false });
   return 'Préstamo anotado correctamente';
@@ -588,9 +588,9 @@ $('#cmodal').addEventListener('click', e => { if (e.target.id === 'cmodal') answ
 const tabbable = x => !x.disabled && x.offsetParent !== null && x.tabIndex >= 0 &&
   (x.type !== 'radio' || x.checked || (!document.querySelector(`input[name="${x.name}"]:checked`) && document.querySelector(`input[name="${x.name}"]`) === x));
 document.addEventListener('keydown', e => {
-  const open = [$('#gmodal'), $('#svcmodal'), $('#catmodal'), $('#fmodal'), $('#cmodal')].find(m => !m.hidden);
+  const open = [$('#accmodal'), $('#gmodal'), $('#svcmodal'), $('#catmodal'), $('#fmodal'), $('#cmodal')].find(m => !m.hidden);
   if (open) {
-    if (e.key === 'Escape') { if (open.id === 'cmodal') answer(false); else if (open.id === 'catmodal') closeCat(); else if (open.id === 'svcmodal') { closeSvc(); $('#svc-btn').focus(); } else if (open.id === 'gmodal') closeG(); else fAnswer(null); }
+    if (e.key === 'Escape') { if (open.id === 'cmodal') answer(false); else if (open.id === 'catmodal') closeCat(); else if (open.id === 'svcmodal') { closeSvc(); $('#svc-btn').focus(); } else if (open.id === 'gmodal') closeG(); else if (open.id === 'accmodal') closeAcc(); else fAnswer(null); }
     else if (e.key === 'Tab') {
       const f = [...open.querySelectorAll('input,select,button')].filter(tabbable);
       if (!f.length) return;
@@ -634,9 +634,13 @@ function ensureMethods() {
   if (!D) return;
   const list = Array.isArray(D.met) ? D.met : [];
   D.met = list.some(m => m.id === 'efectivo') ? list : [{ id: 'efectivo', name: 'Efectivo' }, ...list];
+  D.met.forEach(m => {                       // cuentas viejas: ícono y color por defecto
+    if (!m.icon || !(ICONS[m.icon] || BANK_IDS.has(m.icon))) m.icon = m.id === 'efectivo' ? 'cash' : 'bank';
+    if (!HEX.test(m.color || '')) m.color = m.id === 'efectivo' ? '#1F6F5C' : '#4C7FB5';
+  });
 }
 const activeMethods = () => D.met.filter(m => !m.deleted);
-const methodOf = id => D.met.find(m => m.id === (id || 'efectivo')) || { id: 'efectivo', name: 'Efectivo' };
+const methodOf = id => D.met.find(m => m.id === (id || 'efectivo')) || { id: 'efectivo', name: 'Efectivo', icon: 'cash', color: '#1F6F5C' };
 const savLabel = s => s.tr === 'out' ? 'Transferencia a ' + methodOf(s.to).name
   : s.tr === 'in' ? 'Transferencia desde ' + methodOf(s.from).name
   : (s.amount >= 0 ? 'Aporte a ' : 'Salida de ') + methodOf(s.m).name;
@@ -648,14 +652,16 @@ function syncMethod() {
   if (!D) return;
   if (!activeMethods().some(m => m.id === selM)) selM = 'efectivo';
   $('#m-val').value = selM;
-  $('#dd-cur').textContent = methodOf(selM).name;
+  const cur = methodOf(selM);
+  $('#dd-cur').innerHTML = `${acctBadge(cur, 'sm')}<span class="nm">${esc(cur.name)}</span>`;
 }
 function renderMethods() {
   syncMethod();
   $('#dd-list').innerHTML = activeMethods().map(m => `<div class="dd-item${m.id === selM ? ' sel' : ''}" role="option" aria-selected="${m.id === selM}" tabindex="0" data-mid="${m.id}">
-    <span class="dd-ico">${m.id === 'efectivo' ? CASH : BANK}</span><span class="dd-name">${esc(m.name)}</span><span class="dd-bal">${money(balanceOf(m.id))}</span>
+    ${acctBadge(m, 'sm')}<span class="dd-name">${esc(m.name)}</span><span class="dd-bal">${money(balanceOf(m.id))}</span>
+    <button type="button" class="dd-del dd-edit" data-medit="${m.id}" aria-label="Editar ${esc(m.name)}" title="Editar">${PENCIL}</button>
     ${m.id === 'efectivo' ? '' : `<button type="button" class="dd-del" data-mdel="${m.id}" aria-label="Eliminar ${esc(m.name)}" title="Eliminar">${TRASH}</button>`}</div>`).join('');
-  $('#m-chips').innerHTML = activeMethods().map(m => `<span>${esc(m.name)}: <b class="${balanceOf(m.id) < 0 ? 'neg' : ''}">${money(balanceOf(m.id))}</b></span>`).join('')
+  $('#m-chips').innerHTML = activeMethods().map(m => `<span class="achip" style="border-color:${accColor(m)}">${acctBadge(m, 'sm')}<span>${esc(m.name)}: <b class="${balanceOf(m.id) < 0 ? 'neg' : ''}">${money(balanceOf(m.id))}</b></span></span>`).join('')
     + D.goals.map(g => `<span class="gchip">${FLAG}Meta · ${esc(g.name)}: <b>${money(gSaved(g))}</b></span>`).join('');
   syncTransfer();
   syncAcct();
@@ -685,12 +691,8 @@ function syncTransfer() {
   if (!tr) $('#tr-info').classList.remove('invalid');
   $('#f-sav button[type=submit]').textContent = tr ? 'Transferir' : 'Guardar movimiento';
 }
-function toggleAdd(on) {
-  $('#dd-addbtn').hidden = on; $('#dd-addrow').hidden = !on; $('#dd-err').hidden = true;
-  if (on) { $('#dd-new').value = ''; $('#dd-new').focus(); }
-}
 function openDd() { $('#dd-menu').hidden = false; $('#dd-btn').setAttribute('aria-expanded', 'true'); }
-function closeDd() { $('#dd-menu').hidden = true; $('#dd-btn').setAttribute('aria-expanded', 'false'); toggleAdd(false); }
+function closeDd() { $('#dd-menu').hidden = true; $('#dd-btn').setAttribute('aria-expanded', 'false'); }
 $('#dd-btn').onclick = () => ($('#dd-menu').hidden ? openDd() : closeDd());
 $('#dd-btn').addEventListener('keydown', e => {
   if (e.key === 'ArrowDown') { e.preventDefault(); openDd(); const f = $('#dd-list .dd-item'); f && f.focus(); }
@@ -703,25 +705,90 @@ $('#dd-list').addEventListener('keydown', e => {
   else if ((e.key === 'Enter' || e.key === ' ') && i >= 0 && e.target === items[i]) { e.preventDefault(); items[i].click(); }
 });
 $('#dd-menu').addEventListener('click', e => {
-  const del = e.target.closest('[data-mdel]');
+  const del = e.target.closest('[data-mdel]'), ed = e.target.closest('[data-medit]');
   if (del) { deleteMethod(del.dataset.mdel); return; }
+  if (ed) { closeDd(); openAcc(ed.dataset.medit); return; }
   const it = e.target.closest('[data-mid]');
   if (it) { selM = it.dataset.mid; closeDd(); renderMethods(); $('#dd-btn').focus(); }
 });
-$('#dd-addbtn').onclick = () => toggleAdd(true);
-$('#dd-cancel').onclick = () => toggleAdd(false);
-$('#dd-save').onclick = () => addMethod();
-$('#dd-new').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addMethod(); } });
-$('#dd-new').addEventListener('input', () => { $('#dd-err').hidden = true; });
+$('#dd-addbtn').onclick = () => { closeDd(); openAcc(null); };
 
-async function addMethod() {
-  const name = $('#dd-new').value.trim(), err = $('#dd-err');
-  const fail = t => { err.textContent = t; err.hidden = false; $('#dd-new').focus(); };
+/* ---------- Crear y editar cuentas de ahorro (nombre + color + ícono / banco) ---------- */
+let accEdit = null;                       // id de la cuenta que se edita (null = nueva)
+let accDraft = { icon: 'wallet', color: '#1F6F5C' };
+const accColor = m => (HEX.test(m.color || '') ? m.color : '#4C7FB5');
+/* Insignia de una cuenta: logo/marca si eligió un banco, o ícono genérico con su color */
+const acctBadge = (m, cls = '') => BANK_IDS.has(m.icon) ? sbadge(m.icon, cls)
+  : `<span class="cbadge ${cls}" style="background:${accColor(m)};color:${inkOn(accColor(m))}">${icon(m.icon)}</span>`;
+
+/* Se construye al final (usa sbadge, que se define más abajo) */
+function buildAcc() {
+$('#acc-swatches').innerHTML = SWATCHES.map(([h, n]) => `<label class="sw" title="${n}"><input type="radio" name="acc-color" value="${h}" aria-label="${n}"><span style="background:${h}"></span></label>`).join('')
+  + '<label class="sw custom" title="Color personalizado"><input type="color" id="acc-custom" aria-label="Color personalizado" value="#1f6f5c"><span></span></label>';
+$('#acc-icons').innerHTML = BANK_GROUPS.map(g => `<div class="ic-group"><h3>${g.name}</h3><div class="bk-row">${g.items.map(([id, name]) =>
+    `<label class="bk" data-n="${esc(name.toLowerCase())}"><input type="radio" name="acc-icon" value="${id}" aria-label="${esc(name)}"><span class="bk-in">${sbadge(id, 'sm')}<span class="nm">${esc(name)}</span></span></label>`).join('')}</div></div>`).join('')
+  + `<div class="ic-group"><h3>Otros</h3><div class="ic-row">${ACCOUNT_ICONS.map(([k, n]) =>
+    `<label class="ic" title="${n}" data-n="${n.toLowerCase()}"><input type="radio" name="acc-icon" value="${k}" aria-label="${n}"><span>${icon(k)}</span></label>`).join('')}</div></div>`;
+}
+
+function syncAccModal() {
+  const ik = accDraft.icon, color = accDraft.color, ink = inkOn(color), g = $('#acc-icons');
+  g.style.setProperty('--chosen', color); g.style.setProperty('--chosen-ink', ink);
+  g.querySelectorAll('input').forEach(i => { i.checked = i.value === ik; });
+  let match = false;
+  $('#acc-swatches').querySelectorAll('input[type=radio]').forEach(i => { i.checked = i.value.toLowerCase() === color.toLowerCase(); match = match || i.checked; });
+  const cu = $('#acc-custom');
+  if (cu.value.toLowerCase() !== color.toLowerCase()) cu.value = color;
+  cu.closest('.sw').classList.toggle('on', !match);
+  cu.nextElementSibling.style.background = match ? '' : color;
+  $('#acc-prev').innerHTML = acctBadge({ icon: ik, color }, 'big');
+}
+function filterAcc(q) {
+  q = q.trim().toLowerCase();
+  let any = false;
+  $('#acc-icons').querySelectorAll('[data-n]').forEach(t => { const show = !q || t.dataset.n.includes(q); t.hidden = !show; any = any || show; });
+  $('#acc-icons').querySelectorAll('.ic-group').forEach(g => { g.hidden = !g.querySelector('[data-n]:not([hidden])'); });
+  $('#acc-empty').hidden = any;
+}
+$('#acc-icons').addEventListener('change', e => { if (e.target.name === 'acc-icon') { accDraft.icon = e.target.value; syncAccModal(); } });
+$('#acc-swatches').addEventListener('change', e => { if (e.target.name === 'acc-color') { accDraft.color = e.target.value; syncAccModal(); } });
+$('#acc-swatches').addEventListener('input', e => { if (e.target.id === 'acc-custom') { accDraft.color = e.target.value; syncAccModal(); } });
+$('#acc-search').addEventListener('input', e => filterAcc(e.target.value));
+$('#acc-name').addEventListener('input', () => { $('#acc-err').hidden = true; });
+$('#acc-name').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); saveAcc(); } });
+$('#acc-save').onclick = () => saveAcc();
+$('#acc-cancel').onclick = () => closeAcc();
+
+function openAcc(id) {
+  accEdit = id;
+  const m = id ? D.met.find(x => x.id === id) : null;
+  const free = (SWATCHES.find(([h]) => !activeMethods().some(x => accColor(x).toLowerCase() === h.toLowerCase())) || SWATCHES[0])[0];
+  accDraft = m ? { icon: m.icon, color: accColor(m) } : { icon: 'wallet', color: free };
+  $('#acc-title').textContent = m ? 'Editar cuenta' : 'Nueva cuenta';
+  $('#acc-save').textContent = m ? 'Guardar cambios' : 'Guardar cuenta';
+  $('#acc-name').value = m ? m.name : '';
+  $('#acc-err').hidden = true; $('#acc-search').value = ''; filterAcc('');
+  syncAccModal();
+  showModal($('#accmodal'));
+  $('#acc-icons').scrollTop = 0;
+  $('#acc-name').focus();
+}
+async function closeAcc() { await hideModal($('#accmodal')); $('#dd-btn').focus(); }
+async function saveAcc() {
+  const name = $('#acc-name').value.trim().replace(/\s+/g, ' '), err = $('#acc-err');
+  const fail = t => { err.textContent = t; err.hidden = false; $('#acc-name').focus(); };
   if (!name) return fail('Escribe un nombre.');
-  if (activeMethods().some(m => m.name.toLowerCase() === name.toLowerCase())) return fail('Ya existe un tipo de ahorro con ese nombre.');
-  const m = { id: uid(), name };
-  D.met.push(m); selM = m.id;
-  closeDd(); render(); toast('Tipo de ahorro agregado correctamente'); await persist();
+  if (activeMethods().some(m => m.id !== accEdit && m.name.toLowerCase() === name.toLowerCase())) return fail('Ya existe una cuenta con ese nombre.');
+  if (accEdit) {
+    const m = D.met.find(x => x.id === accEdit);
+    m.name = name; m.icon = accDraft.icon; m.color = accDraft.color;
+  } else {
+    const m = { id: uid(), name, icon: accDraft.icon, color: accDraft.color };
+    D.met.push(m); selM = m.id;                     // la nueva queda elegida
+  }
+  const closing = closeAcc();
+  render(); toast(accEdit ? 'Cuenta actualizada correctamente' : 'Tipo de ahorro agregado correctamente'); persist();
+  await closing;
 }
 
 /* Eliminar un tipo de ahorro: solo con $0, o pasando antes los fondos a otro tipo */
@@ -1317,6 +1384,8 @@ $('#rsf').onchange = async e => {
   } catch { alert('El archivo no es una copia válida.'); }
   e.target.value = '';
 };
+
+buildAcc();
 
 /* ---------- Inicio ---------- */
 function onUser(email, data, err) {

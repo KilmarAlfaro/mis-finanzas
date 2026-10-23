@@ -145,7 +145,7 @@ const SERVICE_GROUPS = [
   { name: 'Video y TV', items: [
     ['netflix', 'Netflix', 'N', '#000000', '#E50914', null, 'netflix.com'],
     ['disney', 'Disney+', 'D+', '#113CCF', '#FFFFFF', null, 'disneyplus.com'],
-    ['hbo', 'HBO Max', 'max', '#5822B4', '#FFFFFF', null, 'hbomax.com'],
+    ['hbo', 'HBO Max', 'max', '#5822B4', '#FFFFFF', null, null],
     ['paramount', 'Paramount+', 'P+', '#0064FF', '#FFFFFF', null, 'paramountplus.com'],
     ['prime', 'Prime Video', 'prime', '#00A8E1', '#FFFFFF', null, 'primevideo.com'],
     ['appletv', 'Apple TV+', 'tv+', '#000000', '#FFFFFF', null, 'tv.apple.com'],
@@ -157,6 +157,9 @@ const SERVICE_GROUPS = [
     ['espn', 'ESPN', 'ESPN', '#D00000', '#FFFFFF', null, 'espn.com'],
     ['winplus', 'Win Sports+', 'W+', '#FDB913', '#111111', null, 'winsports.co'],
     ['twitch', 'Twitch', 'Tw', '#9146FF', '#FFFFFF', null, 'twitch.tv']
+  ] },
+  { name: 'Comida a domicilio', items: [
+    ['pedidosya', 'PedidosYa Plus', 'PY+', '#FA0050', '#FFFFFF', null, null]
   ] },
   { name: 'Música y audio', items: [
     ['spotify', 'Spotify', 'Sp', '#1DB954', '#000000', null, 'spotify.com'],
@@ -200,6 +203,28 @@ const SERVICE_GROUPS = [
 const SERVICES = {};
 SERVICE_GROUPS.forEach(g => g.items.forEach(([id, name, mark, bg, fg, ico, dom]) => { SERVICES[id] = { id, name, mark, bg, fg, ico, dom }; }));
 
+/*
+  Logos propios (réplicas vectoriales) para marcas cuyo logo no se puede traer de internet o sale equivocado.
+  id -> [color de fondo, contenido SVG en cuadrícula 48x48]. Tienen prioridad sobre el logo de internet (ver sbadge() en app.js).
+*/
+const LF = 'font-family="Manrope,Arial,Helvetica,sans-serif" text-anchor="middle"';
+const LOGOS = {
+  /* HBO Max: fondo morado, "HBO" grande y "max" debajo */
+  hbo: ['#5822B4', `<text x="24" y="27" ${LF} font-size="19" font-weight="900" letter-spacing="-.5" fill="#fff">HBO</text><text x="24" y="40" ${LF} font-size="14" font-weight="800" fill="#fff">max</text>`],
+  /* PedidosYa Plus: rojo de la marca, "pedidos" + "ya" y la etiqueta Plus */
+  pedidosya: ['#FA0050', `<text x="24" y="17" ${LF} font-size="9.5" font-weight="800" fill="#fff">pedidos</text><text x="24" y="33" ${LF} font-size="19" font-weight="900" fill="#fff">ya</text><rect x="12" y="36.5" width="24" height="8" rx="4" fill="#fff"/><text x="24" y="43" ${LF} font-size="6.6" font-weight="900" letter-spacing=".4" fill="#FA0050">PLUS</text>`],
+  /* Davivienda: casita blanca sobre rojo */
+  b_davivienda: ['#E1161E', `<path d="M9 24L24 10l15 14" fill="none" stroke="#fff" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 22v15h20V22" fill="none" stroke="#fff" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round"/><rect x="21" y="28" width="6" height="9" fill="#fff"/>`],
+  /* Banco de Fomento Agropecuario: espiga sobre verde + BFA */
+  b_bfa: ['#1F7A3E', `<g fill="#fff"><path d="M24 6c2 2.4 2 5.2 0 7.4-2-2.2-2-5 0-7.4z"/><path d="M23 14.5c-2.8-.2-5-2-5.6-4.6 3 0 5.2 1.6 5.6 4.6zM25 14.5c2.8-.2 5-2 5.6-4.6-3 0-5.2 1.6-5.6 4.6z"/><path d="M23 21c-2.8-.2-5-2-5.6-4.6 3 0 5.2 1.6 5.6 4.6zM25 21c2.8-.2 5-2 5.6-4.6-3 0-5.2 1.6-5.6 4.6z"/><path d="M23 27.5c-2.8-.2-5-2-5.6-4.6 3 0 5.2 1.6 5.6 4.6zM25 27.5c2.8-.2 5-2 5.6-4.6-3 0-5.2 1.6-5.6 4.6z"/></g><path d="M24 12v18" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/><text x="24" y="42" ${LF} font-size="11" font-weight="900" letter-spacing=".5" fill="#fff">BFA</text>`],
+  /* Banco Azul: "banco" pequeño y "azul" grande en blanco sobre azul */
+  b_azul: ['#0072CE', `<text x="24" y="19" ${LF} font-size="8" font-weight="700" letter-spacing=".6" fill="#fff" opacity=".92">banco</text><text x="24" y="35" ${LF} font-size="19" font-weight="900" letter-spacing="-.5" fill="#fff">azul</text>`],
+  /* Banco Industrial: "BI" azul sobre amarillo, con barra */
+  b_industrial: ['#FDB913', `<text x="24" y="32" ${LF} font-size="24" font-weight="900" letter-spacing="-.5" fill="#003B71">BI</text><rect x="11" y="36" width="26" height="3.4" rx="1.7" fill="#003B71"/>`],
+  /* ABANK: palabra naranja sobre blanco, con barra */
+  b_abank: ['#FFFFFF', `<text x="24" y="28" ${LF} font-size="12.5" font-weight="900" letter-spacing="-.3" fill="#E87722">ABANK</text><rect x="8" y="33" width="32" height="3.4" rx="1.7" fill="#E87722"/>`]
+};
+
 
 /*
   Bancos y billeteras de El Salvador (lista de la Superintendencia del Sistema Financiero y del Instituto de Garantía de Depósitos).
@@ -210,15 +235,15 @@ const BANK_GROUPS = [
   { name: 'Bancos de El Salvador', items: [
     ['b_agricola', 'Banco Agrícola', 'BA', '#0A8F3C', '#FFFFFF', null, 'bancoagricola.com'],
     ['b_cuscatlan', 'Banco Cuscatlán', 'BC', '#003B71', '#FFFFFF', null, 'bancocuscatlan.com'],
-    ['b_davivienda', 'Banco Davivienda', 'D', '#E1161E', '#FFFFFF', null, 'davivienda.com.sv'],
+    ['b_davivienda', 'Banco Davivienda', 'D', '#E1161E', '#FFFFFF', null, null],
     ['b_bac', 'BAC Credomatic', 'BAC', '#E30613', '#FFFFFF', null, 'baccredomatic.com'],
     ['b_promerica', 'Banco Promerica', 'Pm', '#2E8B3E', '#FFFFFF', null, 'promerica.com.sv'],
     ['b_hipotecario', 'Banco Hipotecario', 'BH', '#0A3D8F', '#FFFFFF', null, 'bancohipotecario.com.sv'],
-    ['b_bfa', 'Banco de Fomento Agropecuario', 'BFA', '#1F7A3E', '#FFFFFF', null, 'bfa.gob.sv'],
-    ['b_azul', 'Banco Azul', 'Az', '#0072CE', '#FFFFFF', null, 'bancoazul.com'],
+    ['b_bfa', 'Banco de Fomento Agropecuario', 'BFA', '#1F7A3E', '#FFFFFF', null, null],
+    ['b_azul', 'Banco Azul', 'Az', '#0072CE', '#FFFFFF', null, null],
     ['b_atlantida', 'Banco Atlántida', 'At', '#B5121B', '#FFFFFF', null, 'bancoatlantida.com.sv'],
-    ['b_industrial', 'Banco Industrial', 'BI', '#FDB913', '#003B71', null, 'bi.com.sv'],
-    ['b_abank', 'ABANK', 'AB', '#E87722', '#FFFFFF', null, 'abank.com.sv'],
+    ['b_industrial', 'Banco Industrial', 'BI', '#FDB913', '#003B71', null, null],
+    ['b_abank', 'ABANK', 'AB', '#E87722', '#FFFFFF', null, null],
     ['b_apoyo', 'Banco Apoyo Integral', 'AI', '#5B3D91', '#FFFFFF', null, null],
     ['b_citi', 'Citibank', 'citi', '#056DAE', '#FFFFFF', null, 'citi.com']
   ] },

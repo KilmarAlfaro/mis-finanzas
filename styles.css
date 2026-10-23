@@ -794,3 +794,7 @@ li b{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overfl
 
 /* Logos propios (réplicas vectoriales) llenan toda la insignia */
 span.sbadge.logo svg{width:100%;height:100%;display:block}
+
+/* Préstamos: botón Abonar junto a Cobrado */
+li>span:last-child .btn.sm[data-labono]{margin-right:.5rem}
+#lo-ablist .g-ab{font-size:.92rem}

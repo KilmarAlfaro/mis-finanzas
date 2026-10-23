@@ -38,6 +38,8 @@ const CASH = svg('<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="1
 const BANK = svg('<path d="M3 10l9-6 9 6"/><path d="M5 10v9M9 10v9M15 10v9M19 10v9"/><path d="M3 21h18"/>');
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 const getBack = l => (l.back != null ? l.back : l.amount);          // lo que se espera recibir
+const lPaid = l => r2((l.pays || []).reduce((t, a) => t + a.amount, 0));  // lo que ya abonó (pagos parciales)
+const lLeft = l => Math.max(0, r2(getBack(l) - lPaid(l)));                // lo que todavía te debe
 const byCat = list => D.cats.map(c => sum(list.filter(e => e.cat === c.id)));   // mismo orden que D.cats
 const CN = i => D.cats[i].name;
 const PENCIL = svg('<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/>');
@@ -412,11 +414,60 @@ document.addEventListener('click', async e => {
     const l = D.loan.find(x => x.id === paid.dataset.paid);
     if (!l) return;
     if (!(await (l.paid ? askReopen(l) : askPaid(l)))) return;
+    if (l.paid && lPaid(l) >= getBack(l)) l.pays = [];     // estaba saldado solo con abonos: vuelve a deber todo
     l.paid = !l.paid;
     done = l.paid ? 'Préstamo marcado como cobrado' : 'Préstamo reabierto como pendiente';
   } else return;
   render(); persist();            // primero se muestra el cambio y luego se guarda, para que no haya espera
   toast(done);
+});
+
+/* ---------- Abonar a un préstamo (pagos parciales: se descuentan de lo que te deben) ---------- */
+let lTarget = null;
+function fillL() {
+  const l = D.loan.find(x => x.id === lTarget);
+  if (!l) return;
+  const pays = l.pays || [];
+  $('#lo-title').textContent = 'Abonar a la deuda de ' + l.person;
+  $('#lo-sub').textContent = pays.length ? `Te debe ${money(lLeft(l))}. Ya te abonó ${money(lPaid(l))} de ${money(getBack(l))}.` : `Te debe ${money(lLeft(l))}.`;
+  $('#lo-amt').max = lLeft(l);
+  $('#lo-hist').hidden = !pays.length;
+  $('#lo-histn').textContent = `Abonos (${pays.length})`;
+  $('#lo-ablist').innerHTML = pays.map(p => `<div class="g-ab"><span>${fdate(p.date)}</span><b>${money(p.amount)}</b><button type="button" data-ldel="${esc(p.id)}" aria-label="Eliminar abono" title="Eliminar abono">${TRASH}</button></div>`).join('');
+}
+function openL(id) {
+  const l = D.loan.find(x => x.id === id);
+  if (!l || l.paid) return;
+  lTarget = id; fillL();
+  $('#lo-amt').value = ''; $('#lo-err').hidden = true; $('#lo-hist').open = false;
+  const d = $('#lo-date'); d._flatpickr ? d._flatpickr.setDate(today(), true) : (d.value = today());
+  showModal($('#lomodal')); $('#lo-amt').focus();
+}
+async function closeL() { await hideModal($('#lomodal')); }
+async function saveL() {
+  const l = D.loan.find(x => x.id === lTarget), a = r2(parseFloat($('#lo-amt').value)), d = $('#lo-date').value || today(), err = $('#lo-err');
+  if (!l) return;
+  const bad = msg => { err.textContent = msg; err.hidden = false; $('#lo-amt').focus(); };
+  if (!(a > 0)) return bad('Escribe un monto mayor que 0.');
+  if (a > lLeft(l)) return bad(`No puede ser mayor que lo que te debe (${money(lLeft(l))}).`);
+  (l.pays = l.pays || []).push({ id: uid(), amount: a, date: d });
+  const full = lLeft(l) <= 0;
+  if (full) l.paid = true;                         // si cubre todo lo que debía, el préstamo queda cobrado
+  const closing = closeL();
+  render(); persist(); toast(full ? 'Abono registrado: el préstamo quedó cobrado por completo' : 'Abono registrado correctamente');
+  await closing;
+}
+$('#lo-save').onclick = saveL;
+$('#lo-cancel').onclick = closeL;
+$('#lo-amt').addEventListener('input', () => { $('#lo-err').hidden = true; });
+$('#lo-amt').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); saveL(); } });
+$('#l-loan').addEventListener('click', e => { const b = e.target.closest('[data-labono]'); if (b) openL(b.dataset.labono); });
+$('#lo-ablist').addEventListener('click', async e => {
+  const b = e.target.closest('[data-ldel]'), l = D.loan.find(x => x.id === lTarget), p = l && b && (l.pays || []).find(x => x.id === b.dataset.ldel);
+  if (!p) return;
+  if (!(await askDelete(`el abono de ${money(p.amount)} del ${fdate(p.date)}`))) return;
+  l.pays = l.pays.filter(x => x.id !== p.id);
+  fillL(); render(); persist(); toast('Abono eliminado correctamente');
 });
 
 /* ---------- Período del historial ---------- */
@@ -571,10 +622,10 @@ function askDelete(desc, title = '¿Estás seguro que quieres eliminar este regi
     yes: 'Sí, quiero eliminarlo', yesIco: TRASH, yesCls: 'red', no: 'No, no quiero eliminarlo', noIco: SHIELD, noCls: 'blue' });
 }
 const askPaid = l => askConfirm({ title: '¿Esta persona ya te ha pagado?',
-  text: `${l.person} te debe ${money(getBack(l))} (le prestaste ${money(l.amount)}). Si lo confirmas, ese dinero se suma a tu total actual.`,
+  text: lPaid(l) ? `${l.person} te debe ${money(lLeft(l))} todavía (ya te abonó ${money(lPaid(l))} de ${money(getBack(l))}). Si lo confirmas, esos ${money(lLeft(l))} se suman a tu total actual.` : `${l.person} te debe ${money(getBack(l))} (le prestaste ${money(l.amount)}). Si lo confirmas, ese dinero se suma a tu total actual.`,
   tone: 'green', ico: CHECKC, yes: 'Sí, ya me pagó', yesIco: CHECK, yesCls: 'green', no: 'No, todavía no', noIco: CLOCK, noCls: 'blue' });
 const askReopen = l => askConfirm({ title: '¿Volver a marcar este préstamo como pendiente?',
-  text: `El préstamo a ${l.person} dejará de contar como cobrado y se restarán ${money(getBack(l))} de tu total actual.`,
+  text: lPaid(l) >= getBack(l) ? `El préstamo a ${l.person} dejará de contar como cobrado, se restarán ${money(getBack(l))} de tu total actual y se borrarán sus abonos.` : `El préstamo a ${l.person} dejará de contar como cobrado y se restarán ${money(lLeft(l))} de tu total actual.`,
   tone: 'warn', ico: UNDO, yes: 'Sí, volver a pendiente', yesIco: UNDO, yesCls: 'amber', no: 'No, dejarlo cobrado', noIco: SHIELD, noCls: 'blue' });
 async function answer(v) {
   if (!askResolve) return;
@@ -588,9 +639,9 @@ $('#cmodal').addEventListener('click', e => { if (e.target.id === 'cmodal') answ
 const tabbable = x => !x.disabled && x.offsetParent !== null && x.tabIndex >= 0 &&
   (x.type !== 'radio' || x.checked || (!document.querySelector(`input[name="${x.name}"]:checked`) && document.querySelector(`input[name="${x.name}"]`) === x));
 document.addEventListener('keydown', e => {
-  const open = [$('#accmodal'), $('#gmodal'), $('#svcmodal'), $('#catmodal'), $('#fmodal'), $('#cmodal')].find(m => !m.hidden);
+  const open = [$('#accmodal'), $('#gmodal'), $('#lomodal'), $('#svcmodal'), $('#catmodal'), $('#fmodal'), $('#cmodal')].find(m => !m.hidden);
   if (open) {
-    if (e.key === 'Escape') { if (open.id === 'cmodal') answer(false); else if (open.id === 'catmodal') closeCat(); else if (open.id === 'svcmodal') { closeSvc(); $('#svc-btn').focus(); } else if (open.id === 'gmodal') closeG(); else if (open.id === 'accmodal') closeAcc(); else fAnswer(null); }
+    if (e.key === 'Escape') { if (open.id === 'cmodal') answer(false); else if (open.id === 'catmodal') closeCat(); else if (open.id === 'svcmodal') { closeSvc(); $('#svc-btn').focus(); } else if (open.id === 'gmodal') closeG(); else if (open.id === 'lomodal') closeL(); else if (open.id === 'accmodal') closeAcc(); else fAnswer(null); }
     else if (e.key === 'Tab') {
       const f = [...open.querySelectorAll('input,select,button')].filter(tabbable);
       if (!f.length) return;
@@ -1262,8 +1313,8 @@ const expRow = e => { const c = catOf(e.cat);
   const acc = e.m && (activeMethods().length > 1 || e.m !== 'efectivo') ? ' · ' + esc(methodOf(e.m).name) : '';   // de qué cuenta salió
   return row(esc(c.name), fdate(e.date) + acc + (e.note ? '. ' + esc(e.note) : ''), money(e.amount), 'exp', e.id, true, '', '', badge(c)); };
 const savRow = s => row(esc(savLabel(s)), fdate(s.date) + (s.note ? '. ' + esc(s.note) : ''), money(s.amount), 'sav', s.id, s.amount < 0);
-const loanRow = l => row(esc(l.person), `${fdate(l.date)}. Prestado ${money(l.amount)}` + (l.note ? '. ' + esc(l.note) : ''), money(getBack(l)), 'loan', l.id, false,
-  `<button class="btn alt sm" data-paid="${l.id}">${l.paid ? 'Reabrir' : 'Cobrado'}</button>`, l.paid ? 'done' : '');
+const loanRow = l => row(esc(l.person), `${fdate(l.date)}. Prestado ${money(l.amount)}` + (lPaid(l) ? `. Abonado ${money(lPaid(l))}` : '') + (l.note ? '. ' + esc(l.note) : ''), money(l.paid ? getBack(l) : lLeft(l)), 'loan', l.id, false,
+  (l.paid ? '' : `<button class="btn alt sm" data-labono="${l.id}">Abonar</button>`) + `<button class="btn alt sm" data-paid="${l.id}">${l.paid ? 'Reabrir' : 'Cobrado'}</button>`, l.paid ? 'done' : '');
 
 /* Listas separadas por día (Hoy, Ayer, lunes 19 de octubre…), con el total de cada día a la derecha */
 function dayLabel(d) {
@@ -1289,8 +1340,8 @@ function render() {
   const mexp = D.exp.filter(e => e.date.startsWith(ym));
 
   /* Totales: los gastos restan; lo prestado sale de tus manos y vuelve cuando lo cobras */
-  const actual = sum(D.sav) - sum(D.exp) - sum(D.loan) + sumBy(D.loan.filter(l => l.paid), getBack);
-  const conPrest = actual + sumBy(D.loan.filter(l => !l.paid), getBack);
+  const actual = sum(D.sav) - sum(D.exp) - sum(D.loan) + sumBy(D.loan, l => l.paid ? getBack(l) : lPaid(l));
+  const conPrest = actual + sumBy(D.loan.filter(l => !l.paid), lLeft);
   $('#k-sav').textContent = money(actual); $('#k-sav').classList.toggle('neg', actual < 0);
   $('#k-all').textContent = money(conPrest); $('#k-all').classList.toggle('neg', conPrest < 0);
   $('#k-exp').textContent = money(sum(mexp));
@@ -1314,7 +1365,7 @@ function render() {
   renderSubs();
   renderGoals();
 
-  const owed = {}; D.loan.filter(l => !l.paid).forEach(l => owed[l.person] = (owed[l.person] || 0) + getBack(l));
+  const owed = {}; D.loan.filter(l => !l.paid).forEach(l => owed[l.person] = (owed[l.person] || 0) + lLeft(l));
   $('#owed').innerHTML = Object.entries(owed).map(([p, a]) => `<span>${esc(p)}: <b>${money(a)}</b></span>`).join('') || '<span>Nadie te debe nada</span>';
   $('#l-loan').innerHTML = byDay(sorted(D.loan), loanRow, g => 'Prestado ' + money(sum(g))) || '<div class="empty">No has anotado préstamos.</div>';
 

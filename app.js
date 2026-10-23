@@ -994,7 +994,9 @@ const imgFor = dom => {
   return `<img class="${dom in iconIdx ? 'ok' : ''}" src="${iconSrcs(dom)[i]}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" data-dom="${dom}" data-i="${i}">`;
 };
 /* La marca puede tener dos líneas separadas por "|" (ej. claro|video) */
-const sbadge = (id, cls = '') => { const s = svcOf(id), img = imgFor(s.dom), lines = String(s.mark).split('|');
+const sbadge = (id, cls = '') => { const s = svcOf(id), lg = LOGOS[id];
+  if (lg) return `<span class="sbadge logo ${cls}" style="background:${lg[0]}" role="img" aria-label="${esc(s.name)}"><svg viewBox="0 0 48 48" aria-hidden="true">${lg[1]}</svg></span>`;
+  const img = imgFor(s.dom), lines = String(s.mark).split('|');
   return `<span class="sbadge ${cls}${img ? ' has-img' : ''}" data-l="${s.ico ? 0 : Math.max(...lines.map(l => [...l].length))}" style="background:${s.bg};color:${s.fg}"><span class="fb${lines.length > 1 ? ' ml' : ''}">${s.ico ? icon(s.ico) : lines.map(esc).join('<br>')}</span>${img}</span>`; };
 function nextIcon(img) {
   const dom = img.dataset.dom, i = +img.dataset.i + 1, src = iconSrcs(dom)[i];

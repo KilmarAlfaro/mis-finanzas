@@ -91,6 +91,9 @@ const ICONS = {
   card: '<rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/>',
   wallet: '<path d="M20 12V8H6a2 2 0 0 1 0-4h12v4"/><path d="M4 6v12a2 2 0 0 0 2 2h14v-4"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/>',
   cash: '<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 12h.01M18 12h.01"/>',
+  piggy: '<path d="M19 5c-1.5 0-2.8 1.4-3 2-3.5-1.5-11-.3-11 5 0 1.8 0 3 2 4.5V20h4v-2h3v2h4v-4c1-.5 1.7-1 2-2h2v-4h-2c0-1-.5-1.5-1-2V5z"/><path d="M2 9v1c0 1.1.9 2 2 2h1"/><path d="M16 11h.01"/>',
+  coins: '<circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18"/><path d="M7 6h1v4"/><path d="M16.71 13.88l.7.71-2.82 2.82"/>',
+  safe: '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="12" cy="12" r="4"/><path d="M12 8v1M12 15v1M8 12h1M15 12h1"/><path d="M7 21v1M17 21v1"/>',
   bank: '<path d="M3 10l9-6 9 6"/><path d="M5 10v9M9 10v9M15 10v9M19 10v9"/><path d="M3 21h18"/>',
   percent: '<path d="M19 5L5 19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/>',
   trendup: '<path d="M23 6l-9.5 9.5-5-5L1 18"/><path d="M17 6h6v6"/>',
@@ -126,7 +129,7 @@ const ICON_GROUPS = [
   { name: 'Hogar y servicios', icons: [['home', 'Casa'], ['bed', 'Cama'], ['lamp', 'Lámpara'], ['tool', 'Herramienta'], ['zap', 'Electricidad'], ['droplet', 'Agua'], ['flame', 'Gas'], ['wifi', 'Internet'], ['phone', 'Teléfono'], ['mobile', 'Celular'], ['laptop', 'Computadora'], ['tv', 'Televisión'], ['cloud', 'Nube'], ['key', 'Llave'], ['lock', 'Candado']] },
   { name: 'Salud y bienestar', icons: [['cross', 'Salud'], ['pill', 'Medicina'], ['pulse', 'Pulso'], ['thermo', 'Termómetro'], ['heart', 'Corazón'], ['dumbbell', 'Pesas'], ['leaf', 'Naturaleza'], ['sparkles', 'Belleza'], ['smile', 'Sonrisa'], ['paw', 'Mascota']] },
   { name: 'Ocio y viajes', icons: [['film', 'Cine'], ['music', 'Música'], ['gamepad', 'Videojuegos'], ['ticket', 'Entradas'], ['camera', 'Cámara'], ['video', 'Video'], ['headphones', 'Audífonos'], ['globe', 'Mundo'], ['compass', 'Brújula'], ['umbrella', 'Playa'], ['tent', 'Acampar'], ['mountain', 'Montaña'], ['sun', 'Sol'], ['moon', 'Luna']] },
-  { name: 'Dinero y trabajo', icons: [['dollar', 'Dólar'], ['card', 'Tarjeta'], ['wallet', 'Billetera'], ['cash', 'Efectivo'], ['bank', 'Banco'], ['percent', 'Porcentaje'], ['trendup', 'Sube'], ['trenddown', 'Baja'], ['pie', 'Gráfico'], ['briefcase', 'Maletín'], ['calendar', 'Calendario'], ['repeat', 'Suscripción'], ['award', 'Premio'], ['trophy', 'Trofeo']] },
+  { name: 'Dinero y trabajo', icons: [['dollar', 'Dólar'], ['card', 'Tarjeta'], ['wallet', 'Billetera'], ['cash', 'Efectivo'], ['piggy', 'Alcancía'], ['coins', 'Monedas'], ['safe', 'Caja fuerte'], ['bank', 'Banco'], ['percent', 'Porcentaje'], ['trendup', 'Sube'], ['trenddown', 'Baja'], ['pie', 'Gráfico'], ['briefcase', 'Maletín'], ['calendar', 'Calendario'], ['repeat', 'Suscripción'], ['award', 'Premio'], ['trophy', 'Trofeo']] },
   { name: 'Educación y personas', icons: [['cap', 'Graduación'], ['book', 'Libro'], ['pencil', 'Lápiz'], ['user', 'Persona'], ['users', 'Personas'], ['mail', 'Correo']] },
   { name: 'Otros', icons: [['star', 'Estrella'], ['shield', 'Escudo'], ['bell', 'Campana'], ['clock', 'Reloj'], ['flag', 'Bandera'], ['dots', 'Otros']] }
 ];
@@ -196,3 +199,44 @@ const SERVICE_GROUPS = [
 ];
 const SERVICES = {};
 SERVICE_GROUPS.forEach(g => g.items.forEach(([id, name, mark, bg, fg, ico, dom]) => { SERVICES[id] = { id, name, mark, bg, fg, ico, dom }; }));
+
+
+/*
+  Bancos y billeteras de El Salvador (lista de la Superintendencia del Sistema Financiero y del Instituto de Garantía de Depósitos).
+  [id, nombre, marca corta, color de fondo, color de la marca, null, dominio]. El logo real se carga de internet a partir del dominio
+  (misma técnica que las suscripciones); si no hay conexión o no existe, se muestra la marca con sus colores.
+*/
+const BANK_GROUPS = [
+  { name: 'Bancos de El Salvador', items: [
+    ['b_agricola', 'Banco Agrícola', 'BA', '#0A8F3C', '#FFFFFF', null, 'bancoagricola.com'],
+    ['b_cuscatlan', 'Banco Cuscatlán', 'BC', '#003B71', '#FFFFFF', null, 'bancocuscatlan.com'],
+    ['b_davivienda', 'Banco Davivienda', 'D', '#E1161E', '#FFFFFF', null, 'davivienda.com.sv'],
+    ['b_bac', 'BAC Credomatic', 'BAC', '#E30613', '#FFFFFF', null, 'baccredomatic.com'],
+    ['b_promerica', 'Banco Promerica', 'Pm', '#2E8B3E', '#FFFFFF', null, 'promerica.com.sv'],
+    ['b_hipotecario', 'Banco Hipotecario', 'BH', '#0A3D8F', '#FFFFFF', null, 'bancohipotecario.com.sv'],
+    ['b_bfa', 'Banco de Fomento Agropecuario', 'BFA', '#1F7A3E', '#FFFFFF', null, 'bfa.gob.sv'],
+    ['b_azul', 'Banco Azul', 'Az', '#0072CE', '#FFFFFF', null, 'bancoazul.com'],
+    ['b_atlantida', 'Banco Atlántida', 'At', '#B5121B', '#FFFFFF', null, 'bancoatlantida.com.sv'],
+    ['b_industrial', 'Banco Industrial', 'BI', '#FDB913', '#003B71', null, 'bi.com.sv'],
+    ['b_abank', 'ABANK', 'AB', '#E87722', '#FFFFFF', null, 'abank.com.sv'],
+    ['b_apoyo', 'Banco Apoyo Integral', 'AI', '#5B3D91', '#FFFFFF', null, null],
+    ['b_citi', 'Citibank', 'citi', '#056DAE', '#FFFFFF', null, 'citi.com']
+  ] },
+  { name: 'Bancos cooperativos', items: [
+    ['b_fedecredito', 'Fedecrédito', 'Fed', '#00539B', '#FFFFFF', null, 'fedecredito.com.sv'],
+    ['b_mibanco', 'Mi Banco', 'Mi', '#00A3AD', '#FFFFFF', null, 'mibanco.com.sv'],
+    ['b_visionario', 'Banco Cooperativo Visionario', 'Vi', '#7A1F5C', '#FFFFFF', null, null]
+  ] },
+  { name: 'Billeteras digitales', items: [
+    ['b_chivo', 'Chivo Wallet', 'Chivo', '#00A862', '#FFFFFF', null, 'chivowallet.com'],
+    ['b_tigomoney', 'Tigo Money', 'TM', '#00377B', '#FFD100', null, 'tigo.com.sv'],
+    ['b_paypal', 'PayPal', 'PP', '#003087', '#FFFFFF', null, 'paypal.com']
+  ] }
+];
+BANK_GROUPS.forEach(g => g.items.forEach(([id, name, mark, bg, fg, ico, dom]) => { SERVICES[id] = { id, name, mark, bg, fg, ico, dom }; }));
+const BANK_IDS = new Set(BANK_GROUPS.flatMap(g => g.items.map(i => i[0])));
+/* Íconos genéricos para cuentas ("Otros") */
+const ACCOUNT_ICONS = [['wallet', 'Billetera'], ['cash', 'Billetes'], ['piggy', 'Alcancía'], ['bank', 'Banco'], ['trendup', 'Inversiones'], ['coins', 'Monedas'],
+  ['card', 'Tarjeta'], ['safe', 'Caja fuerte'], ['dollar', 'Dólar'], ['briefcase', 'Negocio'], ['pie', 'Portafolio'], ['percent', 'Intereses'],
+  ['gem', 'Joyas'], ['shield', 'Seguro'], ['heart', 'Emergencias'], ['plane', 'Viajes'], ['home', 'Casa'], ['car', 'Vehículo'],
+  ['cap', 'Estudios'], ['gift', 'Regalos'], ['star', 'Favorita'], ['trophy', 'Metas'], ['calendar', 'Ahorro programado'], ['users', 'Familia']];

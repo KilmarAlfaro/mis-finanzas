@@ -164,17 +164,12 @@
       <div class="field grow">
         <span class="lbl" id="dd-lbl">Tipo de ahorro</span>
         <div class="dd" id="dd">
-          <button type="button" class="dd-btn" id="dd-btn" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="dd-lbl dd-cur"><span id="dd-cur">Efectivo</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+          <button type="button" class="dd-btn" id="dd-btn" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="dd-lbl dd-cur"><span class="dd-cur" id="dd-cur"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
           <input type="hidden" name="method" id="m-val" value="efectivo">
           <div class="dd-menu" id="dd-menu" hidden>
             <div id="dd-list" role="listbox" aria-labelledby="dd-lbl"></div>
             <div class="dd-sep"></div>
             <button type="button" class="dd-addbtn" id="dd-addbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Agregar tipo de ahorro</button>
-            <div class="dd-addrow" id="dd-addrow" hidden>
-              <input id="dd-new" maxlength="30" placeholder="Ej. PayPal, Banco Agrícola" autocomplete="off" aria-label="Nombre del nuevo tipo de ahorro">
-              <span class="derr" id="dd-err" role="alert" hidden></span>
-              <div class="dd-btns"><button type="button" class="btn" id="dd-save">Agregar</button><button type="button" class="btn alt" id="dd-cancel">Cancelar</button></div>
-            </div>
           </div>
         </div>
       </div>
@@ -316,6 +311,35 @@
   </div>
 </div>
 
+<div class="modal" id="accmodal" hidden>
+  <div class="dlg accdlg" role="dialog" aria-modal="true" aria-labelledby="acc-title">
+    <h2 id="acc-title">Nueva cuenta</h2>
+    <div class="cat-top">
+      <span class="acc-prev" id="acc-prev" aria-hidden="true"></span>
+      <div class="cat-name">
+        <label for="acc-name">Nombre</label>
+        <input id="acc-name" maxlength="30" autocomplete="off" placeholder="Ej. Banco Agrícola, Ahorro viaje">
+        <span class="derr" id="acc-err" role="alert" hidden></span>
+      </div>
+    </div>
+    <div class="cat-sec">
+      <span class="lbl" id="acc-color-lbl">Color</span>
+      <div class="swatches" id="acc-swatches" role="radiogroup" aria-labelledby="acc-color-lbl"></div>
+    </div>
+    <div class="cat-sec">
+      <span class="lbl" id="acc-icon-lbl">Ícono</span>
+      <input id="acc-search" type="search" autocomplete="off" placeholder="Buscar banco o ícono…" aria-label="Buscar banco o ícono">
+      <div class="ic-grid acc-grid" id="acc-icons" role="radiogroup" aria-labelledby="acc-icon-lbl"></div>
+      <p class="acc-empty" id="acc-empty" hidden>No hay resultados. Prueba con otro nombre o mira la sección «Otros».</p>
+      <p class="svc-note">Los logos de los bancos se cargan desde internet; si no hay conexión verás sus iniciales.</p>
+    </div>
+    <div class="c-btns">
+      <button class="btn" id="acc-save" type="button">Guardar cuenta</button>
+      <button class="btn alt" id="acc-cancel" type="button">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal" id="catmodal" hidden>
   <div class="dlg catdlg" role="dialog" aria-modal="true" aria-labelledby="cat-title">
     <h2 id="cat-title">Nueva categoría</h2>
@@ -349,4 +373,4 @@
 <script src="icons.js"></script>
 <script src="app.js"></script>
 </body>
-  </html>
+</html>

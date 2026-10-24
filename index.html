@@ -261,6 +261,10 @@
     <div class="g-fields">
       <label>Monto ($)<input id="lo-amt" type="number" step="0.01" min="0.01" inputmode="decimal"></label>
       <label>Fecha<input id="lo-date" class="date" type="text" autocomplete="off"></label>
+      <div class="field" id="lo-acct-field" hidden>
+        <label for="lo-acct">¿A qué cuenta entra el dinero?</label>
+        <select id="lo-acct" disabled></select>
+      </div>
     </div>
     <span class="derr" id="lo-err" role="alert" hidden></span>
     <details class="g-hist" id="lo-hist" hidden><summary id="lo-histn">Abonos</summary><div class="g-ablist" id="lo-ablist"></div></details>

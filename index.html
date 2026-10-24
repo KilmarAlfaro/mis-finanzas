@@ -211,6 +211,10 @@
           <label class="edt"><input type="checkbox" id="l-edit"> Editar</label>
         </div>
       </div>
+      <div class="field" id="ln-acct-field" hidden>
+        <label for="ln-acct">Cuenta</label>
+        <select name="acct" id="ln-acct" disabled></select>
+      </div>
       <label>Fecha<input name="date" class="date" type="text" autocomplete="off"></label>
       <label>Nota<input name="note" maxlength="80" placeholder="Opcional" autocomplete="off"></label>
       <button class="btn" type="submit">Anotar préstamo</button>
@@ -223,7 +227,7 @@
 
   <section id="goal">
     <form class="add" id="f-goal" novalidate>
-      <label class="gname-l">Nombre de la meta<input name="gname" maxlength="40" autocomplete="off" placeholder="Ej. Vacaciones, Laptop"></label>
+      <label class="gname-l">Nombre de la meta<input name="gname" maxlength="40" autocomplete="off" placeholder="Ejemplo: Vacaciones Fin de Año"></label>
       <label>Monto a ahorrar ($)<input name="amount" type="number" step="0.01" min="0.01" inputmode="decimal"></label>
       <label>Fecha de inicio<input name="date" class="date" type="text" autocomplete="off"></label>
       <label>Fecha final (opcional)<input name="gend" id="g-end" class="date opt future" type="text" autocomplete="off"></label>

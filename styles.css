@@ -826,3 +826,14 @@ li>span:last-child .btn.sm[data-labono]{margin-right:.5rem}
 .cmp-cats .cc-n em{font-style:normal}
 .cmp-cats .cc-n b{font-weight:800;color:var(--ink)}
 @media(max-width:480px){.cmp-cats .cc-n em{display:none}.cmp-cats .cc-n{min-width:1.7rem;text-align:center;padding:.15rem .5rem}.cmp-cats .cc-t{white-space:nowrap}}
+
+
+/* --- Acceso: casilla "Mantener sesión activa" y pantalla de espera --- */
+.keep{margin:.1rem 0 .15rem;cursor:pointer;width:fit-content}
+.keep input{accent-color:var(--acc);flex:none;cursor:pointer}
+#lock .boot{display:grid;justify-items:center;gap:1rem;color:#fff;font-weight:700}
+#lock .boot p{margin:0}
+#lock.booting .card{display:none}
+.boot .spin{width:2.8rem;height:2.8rem;border-radius:50%;border:4px solid #ffffff2e;border-top-color:#7FD4BC;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.boot .spin{animation-duration:2s}}

@@ -19,6 +19,7 @@
 <body>
 
 <div id="lock">
+  <div class="boot" id="boot" role="status" hidden><div class="spin"></div><p>Entrando a tu cuenta…</p></div>
   <div class="card">
     <h1>Mis finanzas</h1>
     <p id="note" class="note"></p>
@@ -32,6 +33,7 @@
       <label id="codel" hidden>Clave de recuperación<input id="code" autocomplete="off" autocapitalize="characters" placeholder="XXXX-XXXX-XXXX-XXXX"></label>
       <label id="pwl"><span id="pwt">Contraseña</span><input id="pw" type="password" autocomplete="current-password"></label>
       <label id="pw2l" hidden>Repite la contraseña<input id="pw2" type="password" autocomplete="new-password"></label>
+      <label class="chk keep" id="keepl" hidden><input type="checkbox" id="keep"> Mantener sesión activa</label>
       <div id="msg" role="alert"></div>
       <button class="btn" id="go" type="submit">Entrar</button>
       <button class="link" id="forgot" type="button">¿Olvidaste tu contraseña?</button>

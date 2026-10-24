@@ -575,14 +575,17 @@ function chg(c, p, goodUp) {
 function summaryGrid(s) {
   const L1 = cap(s.pmes), L2 = cap(s.mes);
   const tot = (label, p, c, goodUp) => `<div class="cmp-r tot"><span class="cl"><b>${label}</b></span><span class="v" data-l="${L1}">${money(p)}</span><span class="v" data-l="${L2}">${money(c)}</span><span class="ch" data-l="Cambio">${chg(c, p, goodUp)}</span></div>`;
-  const rows = catRows(s).map(x => `<div class="cmp-r"><span class="cl">${ctag(x.c)}</span><span class="v${x.p ? '' : ' z'}" data-l="${L1}">${x.p ? money(x.p) : '—'}</span><span class="v${x.v ? '' : ' z'}" data-l="${L2}">${x.v ? money(x.v) : '—'}</span><span class="ch" data-l="Cambio">${!x.p ? '<span class="chg bad">Nuevo</span>' : !x.v ? '<span class="chg good">Sin gastos</span>' : chg(x.v, x.p, false)}</span></div>`).join('');
+  const cr = catRows(s), nCats = cr.length;
+  const rows = cr.map(x => `<div class="cmp-r"><span class="cl">${ctag(x.c)}</span><span class="v${x.p ? '' : ' z'}" data-l="${L1}">${x.p ? money(x.p) : '—'}</span><span class="v${x.v ? '' : ' z'}" data-l="${L2}">${x.v ? money(x.v) : '—'}</span><span class="ch" data-l="Cambio">${!x.p ? '<span class="chg bad">Nuevo</span>' : !x.v ? '<span class="chg good">Sin gastos</span>' : chg(x.v, x.p, false)}</span></div>`).join('');
   return `<div class="cmp-h"><span></span><span>${cap(s.pmes)}</span><span>${cap(s.mes)}</span><span>Cambio</span></div>
     ${tot('Total gastado', s.pspent, s.spent, false)}${tot('Total ahorrado', s.psaved, s.saved, true)}
-    <div class="cmp-sub">Gastos por categoría</div>
-    <div class="cmp-body">${rows || '<div class="cmp-none">Aún no hay gastos registrados en estos dos meses.</div>'}</div>`;
+    <details class="cmp-cats">
+      <summary><span class="cc-t">Gastos por categoría</span><span class="cc-n"><b>${nCats}</b><em> ${nCats === 1 ? 'categoría' : 'categorías'}</em></span><span class="cc-i" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span></summary>
+      <div class="cmp-body">${nCats ? `<div class="cmp-h"><span></span><span>${cap(s.pmes)}</span><span>${cap(s.mes)}</span><span>Cambio</span></div>${rows}` : '<div class="cmp-none">Aún no hay gastos registrados en estos dos meses.</div>'}</div>
+    </details>`;
 }
 function fillSummary(s) {
-  $('#m-title').textContent = 'Resumen de ' + s.mes;
+  $('#m-sub').textContent = `${cap(s.mes)} ${s.ym.slice(0, 4)} · comparado con ${s.pmes}`;
   $('#m-grid').innerHTML = summaryGrid(s);
   $('#m-text').innerHTML = analysis(s, FMT_UI);
   updateBoxes();
@@ -595,17 +598,40 @@ function hideModal(m) {
     setTimeout(() => { m.hidden = true; m.classList.remove('closing'); res(); }, 170);
   });
 }
-function openSummary() { fillSummary(monthSummary()); showModal($('#modal')); $('#m-ok').focus(); }
+/* "No volver a mostrar": se recuerda solo para el mes actual (localStorage); al cambiar de mes vuelve a salir */
+const skipKey = () => 'resumen-off-' + today().slice(0, 7);
+const summarySkipped = () => { try { return localStorage.getItem(skipKey()) === '1'; } catch { return false; } };
+function pruneSkips() { try { Object.keys(localStorage).filter(k => k.startsWith('resumen-off-') && k !== skipKey()).forEach(k => localStorage.removeItem(k)); } catch {} }
+function openSummary() {
+  fillSummary(monthSummary());
+  $('#m-skip').checked = summarySkipped();
+  showModal($('#modal'));
+  $('.sumdlg').scrollTop = 0;                            // siempre empieza desde arriba
+  $('#m-title').focus({ preventScroll: true });          // enfocar el botón de abajo hacía saltar el scroll hasta el final
+}
 function openSummaryOnce() {
+  pruneSkips();
+  if (summarySkipped()) return;
   let seen = false;
   try { seen = !!sessionStorage.getItem(seenKey()); } catch {}
   if (!seen) openSummary();
 }
 async function closeSummary() {
-  try { sessionStorage.setItem(seenKey(), '1'); } catch {}
+  try {
+    sessionStorage.setItem(seenKey(), '1');
+    if ($('#m-skip').checked) localStorage.setItem(skipKey(), '1'); else localStorage.removeItem(skipKey());
+  } catch {}
   await hideModal($('#modal'));
   $('#sum-open').focus();
 }
+// al abrir la pestaña de categorías, se lleva a la vista para ver todo sin buscar
+$('#m-grid').addEventListener('toggle', e => {
+  const d = e.target; if (!d.open) return;
+  requestAnimationFrame(() => {                          // si la lista no cabe en pantalla, la pestaña sube al inicio para leerla de arriba hacia abajo
+    const dlg = $('.sumdlg'), r = d.getBoundingClientRect(), v = dlg.getBoundingClientRect();
+    if (r.bottom > v.bottom) dlg.scrollTo({ top: dlg.scrollTop + (d.querySelector('summary').getBoundingClientRect().top - v.top) - 10, behavior: 'smooth' });
+  });
+}, true);
 $('#m-ok').onclick = closeSummary;
 $('#sum-open').onclick = openSummary;
 
@@ -1401,7 +1427,7 @@ function render() {
   $('#l-hist').innerHTML = byDay(sorted(pexp), expRow, g => money(sum(g))) || '<div class="empty">No hay gastos en este período.</div>';
   $('#t-cat').textContent = 'Gastos por categoría (' + PERIODS[per].toLowerCase() + ')';
 
-  /* Resumen del mes */
+  /* Resumen mensual */
   fillSummary(monthSummary());
   updateBoxes();
 

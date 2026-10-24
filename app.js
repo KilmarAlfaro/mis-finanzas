@@ -382,7 +382,7 @@ $('#f-sav').addEventListener('reset', () => setTimeout(() => { syncMethod(); syn
 $('#f-sav').addEventListener('change', e => { if (e.target.name === 'kind') syncTransfer(); });
 $('#tr-add').onclick = () => setTimeout(() => openAcc(null), 0);
 bind('#f-loan', f => {
-  D.loan.push({ id: uid(), person: f.person.trim(), amount: +f.amount, back: +(f.back || f.amount), date: f.date || today(), note: f.note.trim(), paid: false });
+  D.loan.push({ id: uid(), person: f.person.trim(), amount: +f.amount, back: +(f.back || f.amount), date: f.date || today(), note: f.note.trim(), paid: false, m: f.acct || 'efectivo' });   // m = cuenta de la que sale el dinero (y a la que vuelve al cobrar)
   return 'Préstamo anotado correctamente';
 });
 bind('#f-goal', f => {
@@ -429,7 +429,7 @@ function fillL() {
   if (!l) return;
   const pays = l.pays || [];
   $('#lo-title').textContent = 'Abonar a la deuda de ' + l.person;
-  $('#lo-sub').textContent = pays.length ? `Te debe ${money(lLeft(l))}. Ya te abonó ${money(lPaid(l))} de ${money(getBack(l))}.` : `Te debe ${money(lLeft(l))}.`;
+  $('#lo-sub').textContent = pays.length ? `Te debe ${money(lLeft(l))}. Ya te abonó ${money(lPaid(l))} de ${money(getBack(l))}.${toAcc(l) ? ' El abono vuelve ' + toAcc(l).slice(2, -1) + '.' : ''}` : `Te debe ${money(lLeft(l))}.${toAcc(l) ? ' El abono vuelve ' + toAcc(l).slice(2, -1) + '.' : ''}`;
   $('#lo-amt').max = lLeft(l);
   $('#lo-hist').hidden = !pays.length;
   $('#lo-histn').textContent = `Abonos (${pays.length})`;
@@ -621,11 +621,12 @@ function askDelete(desc, title = '¿Estás seguro que quieres eliminar este regi
   return askConfirm({ title, text: `Vas a eliminar ${desc}. Esta acción no se puede deshacer.`, tone: '', ico: TRASH,
     yes: 'Sí, quiero eliminarlo', yesIco: TRASH, yesCls: 'red', no: 'No, no quiero eliminarlo', noIco: SHIELD, noCls: 'blue' });
 }
+const toAcc = l => l.m && (activeMethods().length > 1 || l.m !== 'efectivo') ? ` (a «${methodOf(l.m).name}»)` : '';
 const askPaid = l => askConfirm({ title: '¿Esta persona ya te ha pagado?',
-  text: lPaid(l) ? `${l.person} te debe ${money(lLeft(l))} todavía (ya te abonó ${money(lPaid(l))} de ${money(getBack(l))}). Si lo confirmas, esos ${money(lLeft(l))} se suman a tu total actual.` : `${l.person} te debe ${money(getBack(l))} (le prestaste ${money(l.amount)}). Si lo confirmas, ese dinero se suma a tu total actual.`,
+  text: lPaid(l) ? `${l.person} te debe ${money(lLeft(l))} todavía (ya te abonó ${money(lPaid(l))} de ${money(getBack(l))}). Si lo confirmas, esos ${money(lLeft(l))} se suman a tu total actual${toAcc(l)}.` : `${l.person} te debe ${money(getBack(l))} (le prestaste ${money(l.amount)}). Si lo confirmas, ese dinero se suma a tu total actual${toAcc(l)}.`,
   tone: 'green', ico: CHECKC, yes: 'Sí, ya me pagó', yesIco: CHECK, yesCls: 'green', no: 'No, todavía no', noIco: CLOCK, noCls: 'blue' });
 const askReopen = l => askConfirm({ title: '¿Volver a marcar este préstamo como pendiente?',
-  text: lPaid(l) >= getBack(l) ? `El préstamo a ${l.person} dejará de contar como cobrado, se restarán ${money(getBack(l))} de tu total actual y se borrarán sus abonos.` : `El préstamo a ${l.person} dejará de contar como cobrado y se restarán ${money(lLeft(l))} de tu total actual.`,
+  text: lPaid(l) >= getBack(l) ? `El préstamo a ${l.person} dejará de contar como cobrado, se restarán ${money(getBack(l))} de tu total actual${toAcc(l)} y se borrarán sus abonos.` : `El préstamo a ${l.person} dejará de contar como cobrado y se restarán ${money(lLeft(l))} de tu total actual${toAcc(l)}.`,
   tone: 'warn', ico: UNDO, yes: 'Sí, volver a pendiente', yesIco: UNDO, yesCls: 'amber', no: 'No, dejarlo cobrado', noIco: SHIELD, noCls: 'blue' });
 async function answer(v) {
   if (!askResolve) return;
@@ -697,7 +698,11 @@ const savLabel = s => s.tr === 'out' ? 'Transferencia a ' + methodOf(s.to).name
   : (s.amount >= 0 ? 'Aporte a ' : 'Salida de ') + methodOf(s.m).name;
 /* Saldo de una cuenta = sus aportes/transferencias menos los gastos (y cobros de suscripciones) que se le descontaron.
    Los gastos viejos, anotados antes de existir este campo, no tienen cuenta y no se descuentan. */
-const balanceOf = id => r2(sum(D.sav.filter(s => (s.m || 'efectivo') === id)) - sum(D.exp.filter(e => e.m === id)));
+/* Saldo de una cuenta = aportes − gastos − préstamos que salieron de ella + lo que ya te devolvieron (cobrado o abonado).
+   Los préstamos viejos sin cuenta (sin "m") no tocan ninguna cuenta, como antes. */
+const balanceOf = id => r2(sum(D.sav.filter(s => (s.m || 'efectivo') === id)) - sum(D.exp.filter(e => e.m === id))
+  - sum(D.loan.filter(l => l.m === id)) + sumBy(D.loan.filter(l => l.m === id), l => l.paid ? getBack(l) : lPaid(l)));
+const accNote = m => m && (activeMethods().length > 1 || m !== 'efectivo') ? ' · ' + esc(methodOf(m).name) : '';   // " · Cuenta" para las filas
 
 function syncMethod() {
   if (!D) return;
@@ -721,7 +726,7 @@ function renderMethods() {
 function syncAcct() {
   if (!D) return;
   const list = activeMethods(), show = list.length > 1;
-  [['#ex-acct', '#ex-acct-field'], ['#sub-acct', '#sub-acct-field']].forEach(([s, f]) => {
+  [['#ex-acct', '#ex-acct-field'], ['#sub-acct', '#sub-acct-field'], ['#ln-acct', '#ln-acct-field']].forEach(([s, f]) => {
     const sel = $(s), keep = sel.value;
     sel.innerHTML = '<option value="">Elige una cuenta</option>' + list.map(m => `<option value="${esc(m.id)}">${esc(m.name)} (${money(balanceOf(m.id))})</option>`).join('');
     sel.value = list.some(m => m.id === keep) ? keep : '';
@@ -1313,7 +1318,7 @@ const expRow = e => { const c = catOf(e.cat);
   const acc = e.m && (activeMethods().length > 1 || e.m !== 'efectivo') ? ' · ' + esc(methodOf(e.m).name) : '';   // de qué cuenta salió
   return row(esc(c.name), fdate(e.date) + acc + (e.note ? '. ' + esc(e.note) : ''), money(e.amount), 'exp', e.id, true, '', '', badge(c)); };
 const savRow = s => row(esc(savLabel(s)), fdate(s.date) + (s.note ? '. ' + esc(s.note) : ''), money(s.amount), 'sav', s.id, s.amount < 0);
-const loanRow = l => row(esc(l.person), `${fdate(l.date)}. Prestado ${money(l.amount)}` + (lPaid(l) ? `. Abonado ${money(lPaid(l))}` : '') + (l.note ? '. ' + esc(l.note) : ''), money(l.paid ? getBack(l) : lLeft(l)), 'loan', l.id, false,
+const loanRow = l => row(esc(l.person), `${fdate(l.date)}${accNote(l.m)}. Prestado ${money(l.amount)}` + (lPaid(l) ? `. Abonado ${money(lPaid(l))}` : '') + (l.note ? '. ' + esc(l.note) : ''), money(l.paid ? getBack(l) : lLeft(l)), 'loan', l.id, false,
   (l.paid ? '' : `<button class="btn alt sm" data-labono="${l.id}">Abonar</button>`) + `<button class="btn alt sm" data-paid="${l.id}">${l.paid ? 'Reabrir' : 'Cobrado'}</button>`, l.paid ? 'done' : '');
 
 /* Listas separadas por día (Hoy, Ayer, lunes 19 de octubre…), con el total de cada día a la derecha */

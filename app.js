@@ -142,7 +142,7 @@ function enter(email, data) {
   D = data;
   $('#who').textContent = email || '';
   $('#lock').hidden = true; $('#app').hidden = false;
-  ensureMethods(); ensureSubs(); const goalsFixed = ensureGoals(); const migrated = ensureCats(); const charged = applySubs(); msg(''); render();
+  ensureMethods(); ensureSubs(); const goalsFixed = ensureGoals() | ensureLoans(); const migrated = ensureCats(); const charged = applySubs(); msg(''); render();
   if (migrated || charged || goalsFixed) persist();
   if (charged) toast('Se registró el cobro de ' + [...new Set(chargedNow)].join(', '));
   openSummaryOnce();
@@ -413,53 +413,64 @@ document.addEventListener('click', async e => {
   } else if (paid) {
     const l = D.loan.find(x => x.id === paid.dataset.paid);
     if (!l) return;
-    if (!(await (l.paid ? askReopen(l) : askPaid(l)))) return;
-    if (l.paid && lPaid(l) >= getBack(l)) l.pays = [];     // estaba saldado solo con abonos: vuelve a deber todo
-    l.paid = !l.paid;
-    done = l.paid ? 'Préstamo marcado como cobrado' : 'Préstamo reabierto como pendiente';
+    if (!l.paid) { openL(l.id, 'cobro'); return; }          // Cobrado: pide la cuenta donde entra el dinero
+    if (!(await askReopen(l))) return;
+    if ((l.pays || []).some(p => p.final)) l.pays = l.pays.filter(p => !p.final);   // quita el cobro final
+    if (lPaid(l) >= getBack(l)) l.pays = [];                // estaba saldado solo con abonos: vuelve a deber todo
+    l.paid = false;
+    done = 'Préstamo reabierto como pendiente';
   } else return;
   render(); persist();            // primero se muestra el cambio y luego se guarda, para que no haya espera
   toast(done);
 });
 
 /* ---------- Abonar a un préstamo (pagos parciales: se descuentan de lo que te deben) ---------- */
-let lTarget = null;
+let lTarget = null, lMode = 'abono';          // lMode: 'abono' (pago parcial) o 'cobro' (lo que falta, marca cobrado)
 function fillL() {
   const l = D.loan.find(x => x.id === lTarget);
   if (!l) return;
-  const pays = l.pays || [];
-  $('#lo-title').textContent = 'Abonar a la deuda de ' + l.person;
-  $('#lo-sub').textContent = pays.length ? `Te debe ${money(lLeft(l))}. Ya te abonó ${money(lPaid(l))} de ${money(getBack(l))}.${toAcc(l) ? ' El abono vuelve ' + toAcc(l).slice(2, -1) + '.' : ''}` : `Te debe ${money(lLeft(l))}.${toAcc(l) ? ' El abono vuelve ' + toAcc(l).slice(2, -1) + '.' : ''}`;
+  const pays = l.pays || [], cobro = lMode === 'cobro';
+  $('#lo-title').textContent = (cobro ? 'Cobrar a ' : 'Abonar a la deuda de ') + l.person;
+  $('#lo-sub').textContent = (pays.length ? `Te debe ${money(lLeft(l))}. Ya te abonó ${money(lPaid(l))} de ${money(getBack(l))}.` : `Te debe ${money(lLeft(l))}.`)
+    + (cobro ? ' Al confirmar, el préstamo queda cobrado.' : '');
   $('#lo-amt').max = lLeft(l);
+  if (cobro) $('#lo-amt').value = lLeft(l).toFixed(2);
+  $('#lo-amt').readOnly = cobro;
+  $('#lo-save').textContent = cobro ? 'Confirmar cobro' : 'Abonar';
   $('#lo-hist').hidden = !pays.length;
   $('#lo-histn').textContent = `Abonos (${pays.length})`;
-  $('#lo-ablist').innerHTML = pays.map(p => `<div class="g-ab"><span>${fdate(p.date)}</span><b>${money(p.amount)}</b><button type="button" data-ldel="${esc(p.id)}" aria-label="Eliminar abono" title="Eliminar abono">${TRASH}</button></div>`).join('');
+  $('#lo-ablist').innerHTML = pays.map(p => `<div class="g-ab"><span>${fdate(p.date)}${accNote(payAcc(l, p))}</span><b>${money(p.amount)}</b><button type="button" data-ldel="${esc(p.id)}" aria-label="Eliminar abono" title="Eliminar abono">${TRASH}</button></div>`).join('');
 }
-function openL(id) {
+function openL(id, mode = 'abono') {
   const l = D.loan.find(x => x.id === id);
   if (!l || l.paid) return;
-  lTarget = id; fillL();
-  $('#lo-amt').value = ''; $('#lo-err').hidden = true; $('#lo-hist').open = false;
+  lTarget = id; lMode = mode; fillL();
+  if (mode === 'abono') $('#lo-amt').value = '';
+  $('#lo-acct').value = ''; $('#lo-err').hidden = true; $('#lo-hist').open = false;
   const d = $('#lo-date'); d._flatpickr ? d._flatpickr.setDate(today(), true) : (d.value = today());
-  showModal($('#lomodal')); $('#lo-amt').focus();
+  showModal($('#lomodal')); (mode === 'cobro' ? $('#lo-acct').disabled ? $('#lo-save') : $('#lo-acct') : $('#lo-amt')).focus();
 }
 async function closeL() { await hideModal($('#lomodal')); }
 async function saveL() {
-  const l = D.loan.find(x => x.id === lTarget), a = r2(parseFloat($('#lo-amt').value)), d = $('#lo-date').value || today(), err = $('#lo-err');
+  const l = D.loan.find(x => x.id === lTarget), cobro = lMode === 'cobro', d = $('#lo-date').value || today(), err = $('#lo-err');
   if (!l) return;
-  const bad = msg => { err.textContent = msg; err.hidden = false; $('#lo-amt').focus(); };
+  const a = cobro ? lLeft(l) : r2(parseFloat($('#lo-amt').value));
+  const bad = (msg, el) => { err.textContent = msg; err.hidden = false; (el || $('#lo-amt')).focus(); };
   if (!(a > 0)) return bad('Escribe un monto mayor que 0.');
   if (a > lLeft(l)) return bad(`No puede ser mayor que lo que te debe (${money(lLeft(l))}).`);
-  (l.pays = l.pays || []).push({ id: uid(), amount: a, date: d });
+  const acct = $('#lo-acct').disabled ? 'efectivo' : $('#lo-acct').value;      // con una sola cuenta no se pregunta
+  if (!acct) return bad('Elige a qué cuenta entrará el dinero.', $('#lo-acct'));
+  (l.pays = l.pays || []).push(cobro ? { id: uid(), amount: a, date: d, m: acct, final: true } : { id: uid(), amount: a, date: d, m: acct });
   const full = lLeft(l) <= 0;
   if (full) l.paid = true;                         // si cubre todo lo que debía, el préstamo queda cobrado
   const closing = closeL();
-  render(); persist(); toast(full ? 'Abono registrado: el préstamo quedó cobrado por completo' : 'Abono registrado correctamente');
+  render(); persist(); toast(cobro ? 'Préstamo marcado como cobrado' : full ? 'Abono registrado: el préstamo quedó cobrado por completo' : 'Abono registrado correctamente');
   await closing;
 }
 $('#lo-save').onclick = saveL;
 $('#lo-cancel').onclick = closeL;
 $('#lo-amt').addEventListener('input', () => { $('#lo-err').hidden = true; });
+$('#lo-acct').addEventListener('change', () => { $('#lo-err').hidden = true; });
 $('#lo-amt').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); saveL(); } });
 $('#l-loan').addEventListener('click', e => { const b = e.target.closest('[data-labono]'); if (b) openL(b.dataset.labono); });
 $('#lo-ablist').addEventListener('click', async e => {
@@ -621,13 +632,10 @@ function askDelete(desc, title = '¿Estás seguro que quieres eliminar este regi
   return askConfirm({ title, text: `Vas a eliminar ${desc}. Esta acción no se puede deshacer.`, tone: '', ico: TRASH,
     yes: 'Sí, quiero eliminarlo', yesIco: TRASH, yesCls: 'red', no: 'No, no quiero eliminarlo', noIco: SHIELD, noCls: 'blue' });
 }
-const toAcc = l => l.m && (activeMethods().length > 1 || l.m !== 'efectivo') ? ` (a «${methodOf(l.m).name}»)` : '';
-const askPaid = l => askConfirm({ title: '¿Esta persona ya te ha pagado?',
-  text: lPaid(l) ? `${l.person} te debe ${money(lLeft(l))} todavía (ya te abonó ${money(lPaid(l))} de ${money(getBack(l))}). Si lo confirmas, esos ${money(lLeft(l))} se suman a tu total actual${toAcc(l)}.` : `${l.person} te debe ${money(getBack(l))} (le prestaste ${money(l.amount)}). Si lo confirmas, ese dinero se suma a tu total actual${toAcc(l)}.`,
-  tone: 'green', ico: CHECKC, yes: 'Sí, ya me pagó', yesIco: CHECK, yesCls: 'green', no: 'No, todavía no', noIco: CLOCK, noCls: 'blue' });
-const askReopen = l => askConfirm({ title: '¿Volver a marcar este préstamo como pendiente?',
-  text: lPaid(l) >= getBack(l) ? `El préstamo a ${l.person} dejará de contar como cobrado, se restarán ${money(getBack(l))} de tu total actual${toAcc(l)} y se borrarán sus abonos.` : `El préstamo a ${l.person} dejará de contar como cobrado y se restarán ${money(lLeft(l))} de tu total actual${toAcc(l)}.`,
-  tone: 'warn', ico: UNDO, yes: 'Sí, volver a pendiente', yesIco: UNDO, yesCls: 'amber', no: 'No, dejarlo cobrado', noIco: SHIELD, noCls: 'blue' });
+const askReopen = l => { const fin = (l.pays || []).filter(p => p.final);
+  return askConfirm({ title: '¿Volver a marcar este préstamo como pendiente?',
+  text: fin.length ? `El préstamo a ${l.person} dejará de contar como cobrado y se restarán ${money(sum(fin))} de tu total actual y de la cuenta donde entró.` : `El préstamo a ${l.person} dejará de contar como cobrado, se restarán ${money(getBack(l))} de tu total actual y de las cuentas donde entraron sus abonos, y se borrarán esos abonos.`,
+  tone: 'warn', ico: UNDO, yes: 'Sí, volver a pendiente', yesIco: UNDO, yesCls: 'amber', no: 'No, dejarlo cobrado', noIco: SHIELD, noCls: 'blue' }); };
 async function answer(v) {
   if (!askResolve) return;
   const r = askResolve; askResolve = null;
@@ -696,12 +704,12 @@ const methodOf = id => D.met.find(m => m.id === (id || 'efectivo')) || { id: 'ef
 const savLabel = s => s.tr === 'out' ? 'Transferencia a ' + methodOf(s.to).name
   : s.tr === 'in' ? 'Transferencia desde ' + methodOf(s.from).name
   : (s.amount >= 0 ? 'Aporte a ' : 'Salida de ') + methodOf(s.m).name;
-/* Saldo de una cuenta = sus aportes/transferencias menos los gastos (y cobros de suscripciones) que se le descontaron.
-   Los gastos viejos, anotados antes de existir este campo, no tienen cuenta y no se descuentan. */
-/* Saldo de una cuenta = aportes − gastos − préstamos que salieron de ella + lo que ya te devolvieron (cobrado o abonado).
-   Los préstamos viejos sin cuenta (sin "m") no tocan ninguna cuenta, como antes. */
+/* Saldo de una cuenta = aportes − gastos − préstamos que salieron de ella + lo que te devolvieron y entró en ella.
+   Cada abono/cobro guarda su propia cuenta (p.m); si no la tiene (abonos viejos) se usa la cuenta del préstamo.
+   Los préstamos viejos sin cuenta no tocan ninguna cuenta, como antes. */
+const payAcc = (l, p) => p.m || l.m;
 const balanceOf = id => r2(sum(D.sav.filter(s => (s.m || 'efectivo') === id)) - sum(D.exp.filter(e => e.m === id))
-  - sum(D.loan.filter(l => l.m === id)) + sumBy(D.loan.filter(l => l.m === id), l => l.paid ? getBack(l) : lPaid(l)));
+  - sum(D.loan.filter(l => l.m === id)) + sumBy(D.loan, l => sum((l.pays || []).filter(p => payAcc(l, p) === id))));
 const accNote = m => m && (activeMethods().length > 1 || m !== 'efectivo') ? ' · ' + esc(methodOf(m).name) : '';   // " · Cuenta" para las filas
 
 function syncMethod() {
@@ -726,7 +734,7 @@ function renderMethods() {
 function syncAcct() {
   if (!D) return;
   const list = activeMethods(), show = list.length > 1;
-  [['#ex-acct', '#ex-acct-field'], ['#sub-acct', '#sub-acct-field'], ['#ln-acct', '#ln-acct-field']].forEach(([s, f]) => {
+  [['#ex-acct', '#ex-acct-field'], ['#sub-acct', '#sub-acct-field'], ['#ln-acct', '#ln-acct-field'], ['#lo-acct', '#lo-acct-field']].forEach(([s, f]) => {
     const sel = $(s), keep = sel.value;
     sel.innerHTML = '<option value="">Elige una cuenta</option>' + list.map(m => `<option value="${esc(m.id)}">${esc(m.name)} (${money(balanceOf(m.id))})</option>`).join('');
     sel.value = list.some(m => m.id === keep) ? keep : '';
@@ -1212,6 +1220,16 @@ function ensureGoals() {
   D.goals.forEach(g => { if (!Array.isArray(g.adds)) { g.adds = []; ch = true; } });
   return ch;
 }
+/* Préstamos viejos ya cobrados: su cobro pasa a registrarse como un pago (con la cuenta del préstamo) para que todo salga de "pays" */
+function ensureLoans() {
+  if (!D) return false;
+  let ch = false;
+  D.loan.forEach(l => {
+    if (!Array.isArray(l.pays)) { l.pays = []; ch = true; }
+    if (l.paid && lLeft(l) > 0) { l.pays.push({ id: uid(), amount: lLeft(l), date: l.date, m: l.m, final: true }); ch = true; }
+  });
+  return ch;
+}
 const gSaved = g => r2(sum(g.adds));
 /* Estado de una meta: avance, cuánto falta y, si tiene fecha final, si va al día */
 function goalInfo(g) {
@@ -1345,7 +1363,7 @@ function render() {
   const mexp = D.exp.filter(e => e.date.startsWith(ym));
 
   /* Totales: los gastos restan; lo prestado sale de tus manos y vuelve cuando lo cobras */
-  const actual = sum(D.sav) - sum(D.exp) - sum(D.loan) + sumBy(D.loan, l => l.paid ? getBack(l) : lPaid(l));
+  const actual = sum(D.sav) - sum(D.exp) - sum(D.loan) + sumBy(D.loan, lPaid);
   const conPrest = actual + sumBy(D.loan.filter(l => !l.paid), lLeft);
   $('#k-sav').textContent = money(actual); $('#k-sav').classList.toggle('neg', actual < 0);
   $('#k-all').textContent = money(conPrest); $('#k-all').classList.toggle('neg', conPrest < 0);
@@ -1438,7 +1456,7 @@ $('#rsf').onchange = async e => {
     if (!Array.isArray(j.sav) || !Array.isArray(j.exp) || !Array.isArray(j.loan)) throw 0;
     if (!confirm('Esto reemplaza todos tus datos actuales. ¿Continuar?')) return;
     D = { sav: j.sav, exp: j.exp, loan: j.loan, met: Array.isArray(j.met) ? j.met : [], cats: Array.isArray(j.cats) ? j.cats : undefined, subs: Array.isArray(j.subs) ? j.subs : [], goals: Array.isArray(j.goals) ? j.goals : [] };
-    ensureMethods(); ensureGoals(); ensureCats(); applySubs(); render(); toast('Copia restaurada correctamente'); await persist();
+    ensureMethods(); ensureGoals(); ensureLoans(); ensureCats(); applySubs(); render(); toast('Copia restaurada correctamente'); await persist();
   } catch { alert('El archivo no es una copia válida.'); }
   e.target.value = '';
 };

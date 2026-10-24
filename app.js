@@ -50,6 +50,7 @@ const CHECKC = svg('<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4
 const CLOCK = svg('<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>');
 const FLAG = svg('<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22v-7"/>');
 const EXCL = svg('<path d="M12 8v5"/><path d="M12 17h.01"/>');
+const LOGOUT = svg('<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>');
 const UNDO = svg('<path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/>');
 /* Color del ícono (blanco u oscuro) según el que tenga más contraste con el fondo */
 const lum = hex => { const n = parseInt(hex.slice(1), 16);
@@ -105,6 +106,24 @@ const showErr = e => msg(e && e.user ? e.message : (ERR[e && e.code] || 'Error: 
 window.addEventListener('error', e => msg('Error: ' + e.message));
 window.addEventListener('unhandledrejection', e => showErr(e.reason));
 
+/* ---------- Mantener sesión activa (6 meses) ----------
+   Con la casilla marcada se guarda una fecha límite (fin-keep, localStorage) y la sesión sobrevive aunque cierres el navegador.
+   Sin la casilla solo vale para esta pestaña (fin-sess, sessionStorage). Si Firebase restaura una sesión que no cumple ninguna
+   de las dos (vencida, o de otra visita sin casilla), se cierra y se muestra el acceso, así se puede entrar con otra cuenta.
+   Cerrar sesión a mano borra todo. */
+const KEEP_KEY = 'fin-keep', SESS_KEY = 'fin-sess', KEEP_DAYS = 183;
+const keepValid = () => { try { const k = JSON.parse(localStorage.getItem(KEEP_KEY)); if (k && k.until > Date.now()) return true; localStorage.removeItem(KEEP_KEY); } catch {} return false; };
+const sessionAllowed = () => { if (keepValid()) return true; try { return sessionStorage.getItem(SESS_KEY) === '1'; } catch { return false; } };
+const rememberLogin = keep => { try {
+  if (keep) { localStorage.setItem(KEEP_KEY, JSON.stringify({ until: Date.now() + KEEP_DAYS * 864e5 })); sessionStorage.removeItem(SESS_KEY); }
+  else { localStorage.removeItem(KEEP_KEY); sessionStorage.setItem(SESS_KEY, '1'); } } catch {} };
+const forgetLogin = () => { try { localStorage.removeItem(KEEP_KEY); sessionStorage.removeItem(SESS_KEY); } catch {} };
+const keepWanted = () => !$('#keepl').hidden && $('#keep').checked;
+/* Mientras Firebase confirma una sesión guardada se muestra "Entrando…" en vez del acceso (evita el parpadeo del login) */
+let bootTimer = null;
+function beginBoot() { $('#lock').classList.add('booting'); $('#boot').hidden = false; bootTimer = setTimeout(endBoot, 20000); }
+function endBoot() { clearTimeout(bootTimer); $('#lock').classList.remove('booting'); $('#boot').hidden = true; }
+
 /* ---------- Pantalla de acceso ---------- */
 function setMode(m) {
   mode = m;
@@ -117,6 +136,7 @@ function setMode(m) {
   $('#pwt').textContent = reset ? 'Nueva contraseña' : 'Contraseña';
   $('#pw').autocomplete = (up || reset) ? 'new-password' : 'current-password';
   $('#go').textContent = up ? 'Crear cuenta' : reset ? 'Cambiar contraseña' : 'Entrar';
+  $('#keepl').hidden = !(m === 'in' && !local);
   $('#forgot').hidden = m !== 'in';
   $('#back').hidden = !reset;
   $('#wipe').hidden = !(reset && local);
@@ -134,7 +154,7 @@ function showLock() {
     ? (has ? 'Tus datos están cifrados y guardados solo en este navegador.'
            : 'Crea tu cuenta. Tus datos se guardarán cifrados solo en este navegador.')
     : 'Entra a tu cuenta. Tus datos se guardan en la nube.';
-  $('#pw').value = $('#pw2').value = $('#code').value = '';
+  $('#pw').value = $('#pw2').value = $('#code').value = ''; $('#keep').checked = false;
   setMode(has || !local ? 'in' : 'up');
 }
 
@@ -176,7 +196,7 @@ $('#forgot').onclick = async () => {
     msg('Si ese correo tiene cuenta, te enviamos un enlace para cambiar la contraseña. Revisa también spam.', true);
   } catch (e) { showErr(e); }
 };
-$('#google').onclick = async () => { try { await B.google(); } catch (e) { showErr(e); } };
+$('#google').onclick = async () => { rememberLogin(keepWanted()); try { await B.google(); } catch (e) { forgetLogin(); showErr(e); } };
 
 $('#auth-form').addEventListener('submit', async e => {
   e.preventDefault();
@@ -201,16 +221,19 @@ $('#auth-form').addEventListener('submit', async e => {
         const code = await B.signup(em, pw);
         pending = { email: em.toLowerCase(), D: { sav: [], exp: [], loan: [] } };
         showRecovery(code);
-      } else await B.signup(em, pw);
+      } else { rememberLogin(false); await B.signup(em, pw); }
     } else if (local) {
       const data = await B.login(em, pw);
       enter(B.email(), data);
-    } else await B.login(em, pw);
-  } catch (err) { showErr(err); }
+    } else { rememberLogin(keepWanted()); await B.login(em, pw); }
+  } catch (err) { if (!local) forgetLogin(); showErr(err); }
   $('#go').disabled = false;
 });
 
-$('#logout').onclick = () => {
+$('#logout').onclick = async () => {
+  if (!(await askConfirm({ title: '¿Quieres cerrar sesión?', text: 'Tendrás que iniciar sesión otra vez para volver a entrar a tus finanzas.', tone: 'warn', ico: LOGOUT,
+    yes: 'Sí, cerrar sesión', yesIco: LOGOUT, yesCls: 'amber', no: 'No, quedarme', noIco: SHIELD, noCls: 'blue' }))) return;
+  forgetLogin();
   try { sessionStorage.clear(); } catch {}
   B.logout();
   if (B.mode === 'local') { D = null; showLock(); }
@@ -1490,9 +1513,10 @@ $('#rsf').onchange = async e => {
 buildAcc();
 
 /* ---------- Inicio ---------- */
-function onUser(email, data, err) {
-  if (email === null) { D = null; showLock(); if (err) showErr(err); return; }
-  enter(email, data);
+async function onUser(email, data, err) {
+  if (email === null) { D = null; endBoot(); showLock(); if (err) showErr(err); return; }
+  if (B.mode === 'cloud' && !sessionAllowed()) { await B.logout(); return; }   // sesión guardada sin "Mantener sesión activa" (o vencida): se pide entrar de nuevo
+  endBoot(); enter(email, data);
 }
 (async () => {
   showLock();
@@ -1503,5 +1527,6 @@ function onUser(email, data, err) {
     }
     return;
   }
-  try { await B.init(window.FIREBASE_CONFIG, onUser); } catch (e) { showErr(e); }
+  if (sessionAllowed()) beginBoot();
+  try { await B.init(window.FIREBASE_CONFIG, onUser); } catch (e) { endBoot(); showErr(e); }
 })();

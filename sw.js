@@ -5,7 +5,7 @@
    - NO toca nada de otros dominios (Firebase, Firestore, Google, etc.): esas peticiones pasan directo a la red.
    - Solo guarda también librerías estáticas de cdnjs y las fuentes de Google, para que la app no se vea rota sin internet.
    Al publicar cambios importantes puedes subir el número de CACHE para limpiar copias viejas. */
-const CACHE = 'mis-finanzas-v1';
+const CACHE = 'mis-finanzas-v2';
 const CORE = ['./', 'index.html', 'styles.css', 'app.js', 'icons.js', 'store.js', 'config.js', 'manifest.json',
   'icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'apple-touch-icon.png'];
 const STATIC_HOSTS = ['cdnjs.cloudflare.com', 'fonts.googleapis.com', 'fonts.gstatic.com'];

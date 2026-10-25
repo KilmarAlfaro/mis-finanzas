@@ -228,7 +228,14 @@
       <div class="field person-f">
         <label for="ln-person">Persona</label>
         <input name="person" id="ln-person" maxlength="40" autocomplete="off">
-        <div class="sug" id="ln-sug" hidden><p class="sug-t"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg><span>Agregar otro préstamo a alguien que aún te debe</span></p><div class="sug-l" id="ln-sugl" role="list"></div></div>
+        <div class="sug" id="ln-sug" hidden>
+          <button type="button" class="sug-t" id="ln-sugt" aria-expanded="false" aria-controls="ln-sugl">
+            <span class="sug-plus" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
+            <span class="sug-tx">Agregar otro préstamo a alguien que aún te debe</span>
+            <span class="sug-cnt" id="ln-sugn" aria-label="personas"></span>
+          </button>
+          <div class="sug-l" id="ln-sugl" role="list" hidden></div>
+        </div>
       </div>
       <label>Monto prestado ($)<input name="amount" id="l-amt" type="number" step="0.01" min="0.01" inputmode="decimal"></label>
       <div class="field">

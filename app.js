@@ -1443,6 +1443,8 @@ function render() {
   renderGoals();
 
   const owed = {}; D.loan.filter(l => !l.paid).forEach(l => owed[l.person] = (owed[l.person] || 0) + lLeft(l));
+  const owedTotal = r2(sum(Object.values(owed).map(amount => ({ amount }))));
+  $('#owed-tot').hidden = !(owedTotal > 0); $('#owed-tot b').textContent = money(owedTotal);     // total que hay prestado ahora (lo que falta por cobrar)
   $('#owed').innerHTML = Object.entries(owed).map(([p, a]) => `<span>${esc(p)}: <b>${money(a)}</b></span>`).join('') || '<span>Nadie te debe nada</span>';
   const loansF = sorted(D.loan).filter(l => fPerson === 'all' || norm(l.person) === fPerson);
   $('#l-loan').innerHTML = byDay(loansF, loanRow, g => 'Prestado ' + money(sum(g))) || '<div class="empty">No has anotado préstamos.</div>';
@@ -1578,7 +1580,7 @@ function renderSug() {
   if (!D) return;
   const q = norm($('#ln-person').value), list = peopleInfo().filter(p => p.left > 0 && (!q || norm(p.name).includes(q)));
   $('#ln-sug').hidden = !list.length;
-  $('#ln-sugl').innerHTML = list.map(p => `<button type="button" class="sug-c${norm(p.name) === q ? ' on' : ''}" data-name="${esc(p.name)}" aria-pressed="${norm(p.name) === q}"><span class="sug-i">${esc(p.name.charAt(0).toUpperCase())}</span><span class="sug-n">${esc(p.name)}</span><span class="sug-a">${money(p.left)}</span></button>`).join('');
+  $('#ln-sugl').innerHTML = list.map(p => `<button type="button" role="listitem" class="sug-c${norm(p.name) === q ? ' on' : ''}" data-name="${esc(p.name)}" aria-pressed="${norm(p.name) === q}"><span class="sug-dot" aria-hidden="true"></span><span class="sug-n">${esc(p.name)}</span><span class="sug-a">${money(p.left)}</span></button>`).join('');
 }
 $('#ln-person').addEventListener('input', renderSug);
 $('#ln-sugl').addEventListener('click', e => {

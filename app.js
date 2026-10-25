@@ -406,7 +406,7 @@ $('#f-sav').addEventListener('reset', () => setTimeout(() => { syncMethod(); syn
 $('#f-sav').addEventListener('change', e => { if (e.target.name === 'kind') syncTransfer(); });
 $('#tr-add').onclick = () => setTimeout(() => openAcc(null), 0);
 bind('#f-loan', f => {
-  D.loan.push({ id: uid(), person: f.person.trim(), amount: +f.amount, back: +(f.back || f.amount), date: f.date || today(), note: f.note.trim(), paid: false, m: f.acct || 'efectivo' });   // m = cuenta de la que sale el dinero (y a la que vuelve al cobrar)
+  D.loan.push({ id: uid(), person: canonPerson(f.person), amount: +f.amount, back: +(f.back || f.amount), date: f.date || today(), note: f.note.trim(), paid: false, m: f.acct || 'efectivo' });   // m = cuenta de la que sale el dinero (y a la que vuelve al cobrar)
   return 'Préstamo anotado correctamente';
 });
 bind('#f-goal', f => {
@@ -1430,7 +1430,11 @@ function render() {
   $('#k-ml').textContent = 'Gastado en ' + new Date().toLocaleDateString('es', { month: 'long' });
 
   /* Listas */
-  $('#l-exp').innerHTML = byDay(sorted(D.exp).slice(0, 500), expRow, g => money(sum(g))) || '<div class="empty">Aún no hay gastos. Agrega el primero arriba.</div>';
+  renderFilters();
+  const expsF = sorted(D.exp).filter(e => fCat === 'all' || e.cat === fCat);
+  $('#l-exp').innerHTML = byDay(expsF.slice(0, 500), expRow, g => money(sum(g))) || (fCat === 'all'
+    ? '<div class="empty">Aún no hay gastos. Agrega el primero arriba.</div>'
+    : `<div class="empty">No tienes gastos en la categoría <b>${esc(catOf(fCat).name)}</b>.<button type="button" class="filt-x" data-clear="exp">Ver todos los gastos</button></div>`);
   $('#l-sav').innerHTML = byDay(sorted(D.sav).slice(0, 500), savRow, g => signed(r2(sum(g)))) || '<div class="empty">Registra tu primer aporte de ahorro arriba.</div>';
 
   renderMethods();
@@ -1440,7 +1444,9 @@ function render() {
 
   const owed = {}; D.loan.filter(l => !l.paid).forEach(l => owed[l.person] = (owed[l.person] || 0) + lLeft(l));
   $('#owed').innerHTML = Object.entries(owed).map(([p, a]) => `<span>${esc(p)}: <b>${money(a)}</b></span>`).join('') || '<span>Nadie te debe nada</span>';
-  $('#l-loan').innerHTML = byDay(sorted(D.loan), loanRow, g => 'Prestado ' + money(sum(g))) || '<div class="empty">No has anotado préstamos.</div>';
+  const loansF = sorted(D.loan).filter(l => fPerson === 'all' || norm(l.person) === fPerson);
+  $('#l-loan').innerHTML = byDay(loansF, loanRow, g => 'Prestado ' + money(sum(g))) || '<div class="empty">No has anotado préstamos.</div>';
+  renderSug();
 
   /* Historial por período */
   const from = cutoff(per);
@@ -1519,6 +1525,94 @@ async function onUser(email, data, err) {
   if (B.mode === 'cloud' && !sessionAllowed()) { await B.logout(); return; }   // sesión guardada sin "Mantener sesión activa" (o vencida): se pide entrar de nuevo
   endBoot(); enter(email, data);
 }
+/* ---------- Filtros (gastos por categoría, préstamos por persona) y sugerencias de personas ---------- */
+const norm = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();   // "Ángel " = "angel"
+let fCat = 'all', fPerson = 'all';
+/* Si ya existe esa persona (aunque cambie mayúsculas, tildes o espacios) se usa su misma escritura, para no duplicarla */
+function canonPerson(name) {
+  const clean = String(name || '').replace(/\s+/g, ' ').trim(), hit = D.loan.find(l => norm(l.person) === norm(clean));
+  return hit ? hit.person : clean;
+}
+/* Personas con préstamos, con lo que cada una debe todavía */
+function peopleInfo() {
+  const m = new Map();
+  sorted(D.loan).forEach(l => {                           // recorrido del más reciente al más antiguo: queda la escritura más reciente
+    const k = norm(l.person), p = m.get(k) || { key: k, name: l.person, left: 0, lent: 0, n: 0, open: 0 };
+    p.lent += l.amount; p.n++; if (!l.paid) { p.left += lLeft(l); p.open++; }
+    m.set(k, p);
+  });
+  return [...m.values()];
+}
+function renderFilters() {
+  /* Gastos: todas las categorías del usuario, con cuántos gastos tiene cada una */
+  if (fCat !== 'all' && !D.cats.some(c => c.id === fCat)) fCat = 'all';
+  const cnt = {}; D.exp.forEach(e => { cnt[e.cat] = (cnt[e.cat] || 0) + 1; });
+  const sc = $('#fx-cat');
+  sc.innerHTML = `<option value="all">Todas las categorías (${D.exp.length})</option>` + D.cats.map(c => `<option value="${esc(c.id)}">${esc(c.name)} (${cnt[c.id] || 0})</option>`).join('');
+  sc.value = fCat; sc.classList.toggle('on', fCat !== 'all');
+  $('#fx-clear').hidden = fCat === 'all';
+  const xs = $('#fx-sum');
+  if (fCat === 'all') xs.hidden = true;
+  else { const l = D.exp.filter(e => e.cat === fCat); xs.hidden = !l.length;       // sin gastos: ya lo explica el aviso de la lista
+    xs.innerHTML = `${ctag(catOf(fCat))}<span>${l.length} ${l.length === 1 ? 'gasto' : 'gastos'} · <b>${money(sum(l))}</b> en total</span>`; }
+
+  /* Préstamos: personas que han tenido préstamos */
+  const people = peopleInfo().sort((p, q) => p.name.localeCompare(q.name, 'es'));
+  if (fPerson !== 'all' && !people.some(p => p.key === fPerson)) fPerson = 'all';
+  const sp = $('#fp-person');
+  sp.innerHTML = `<option value="all">Todas las personas (${people.length})</option>` + people.map(p => `<option value="${esc(p.key)}">${esc(p.name)} · ${p.left > 0 ? money(p.left) : 'saldado'}</option>`).join('');
+  sp.value = fPerson; sp.classList.toggle('on', fPerson !== 'all');
+  $('#fp-clear').hidden = fPerson === 'all';
+  const ps = $('#fp-sum'), cur = people.find(p => p.key === fPerson);
+  if (!cur) ps.hidden = true;
+  else { ps.hidden = false; ps.innerHTML = `<span class="sug-i">${esc(cur.name.charAt(0).toUpperCase())}</span><span><b>${esc(cur.name)}</b>: ${cur.left > 0 ? `te debe <b>${money(cur.left)}</b>` : 'sin deudas pendientes'} · ${cur.n} ${cur.n === 1 ? 'préstamo' : 'préstamos'}, ${money(cur.lent)} prestados en total</span>`; }
+}
+$('#fx-cat').onchange = e => { fCat = e.target.value; render(); };
+$('#fp-person').onchange = e => { fPerson = e.target.value; render(); };
+$('#fx-clear').onclick = () => { fCat = 'all'; render(); };
+$('#fp-clear').onclick = () => { fPerson = 'all'; render(); };
+$('#exp').addEventListener('click', e => { if (e.target.closest('[data-clear="exp"]')) { fCat = 'all'; render(); } });
+
+/* Formulario de préstamos: sugiere solo a quienes te deben ahora. Cuando saldan, dejan de aparecer */
+function renderSug() {
+  if (!D) return;
+  const q = norm($('#ln-person').value), list = peopleInfo().filter(p => p.left > 0 && (!q || norm(p.name).includes(q)));
+  $('#ln-sug').hidden = !list.length;
+  $('#ln-sugl').innerHTML = list.map(p => `<button type="button" class="sug-c${norm(p.name) === q ? ' on' : ''}" data-name="${esc(p.name)}" aria-pressed="${norm(p.name) === q}"><span class="sug-i">${esc(p.name.charAt(0).toUpperCase())}</span><span class="sug-n">${esc(p.name)}</span><span class="sug-a">${money(p.left)}</span></button>`).join('');
+}
+$('#ln-person').addEventListener('input', renderSug);
+$('#ln-sugl').addEventListener('click', e => {
+  const b = e.target.closest('[data-name]'); if (!b) return;
+  $('#ln-person').value = b.dataset.name; renderSug(); $('#l-amt').focus();
+});
+$('#f-loan').addEventListener('reset', () => setTimeout(renderSug, 0));
+
+/* ---------- App instalable (PWA) ----------
+   Registra el service worker (sw.js) y muestra un aviso discreto "Instalar" cuando el navegador lo permite.
+   Android/Chrome/Edge: usa el evento beforeinstallprompt. iPhone/iPad no tienen ese evento: se muestra la indicación manual.
+   El aviso se oculta si la app ya está instalada, si no es compatible, o durante 30 días si lo cierras con la ×. */
+if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+let installEvt = null;
+const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const pwaDismissed = () => { try { return Date.now() - Number(localStorage.getItem('pwa-dismiss') || 0) < 30 * 864e5; } catch { return false; } };
+function pwaShow() {
+  const show = !isStandalone() && !pwaDismissed() && (!!installEvt || isIOS());
+  $('#pwa-bar').hidden = !show;
+  $('#pwa-go').hidden = !installEvt;
+  $('#pwa-sub').textContent = installEvt ? 'Ábrela como una app, a pantalla completa.' : 'Toca Compartir y elige «Añadir a pantalla de inicio».';
+}
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; pwaShow(); });
+window.addEventListener('appinstalled', () => { installEvt = null; pwaShow(); toast('Aplicación instalada correctamente'); });
+$('#pwa-go').onclick = async () => {
+  if (!installEvt) return;
+  installEvt.prompt();
+  try { await installEvt.userChoice; } catch {}
+  installEvt = null; pwaShow();                    // el aviso del navegador solo se puede usar una vez
+};
+$('#pwa-x').onclick = () => { try { localStorage.setItem('pwa-dismiss', String(Date.now())); } catch {} $('#pwa-bar').hidden = true; };
+pwaShow();
+
 (async () => {
   showLock();
   if (B.mode === 'local') {

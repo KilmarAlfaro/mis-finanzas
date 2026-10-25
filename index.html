@@ -5,6 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#17302B">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="application-name" content="ChanchitoSV">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ChanchitoSV">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <title>Mis finanzas</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -76,6 +84,12 @@
 </header>
 
 <main class="wrap">
+  <div class="pwa-bar" id="pwa-bar" hidden>
+    <img src="icon-192.png" alt="" width="44" height="44">
+    <div class="pwa-t"><b>Instala ChanchitoSV</b><span id="pwa-sub">Ábrela como una app, a pantalla completa.</span></div>
+    <button class="btn sm" id="pwa-go" type="button">Instalar</button>
+    <button class="pwa-x" id="pwa-x" type="button" aria-label="Ocultar aviso" title="Ocultar aviso"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </div>
   <section id="res" class="on">
     <div class="figs">
       <div class="fig main"><small>Total actual</small><b id="k-sav">$0.00</b></div>
@@ -158,6 +172,13 @@
     </form>
     <div class="boxwrap subs"><div class="sub-list sbox" id="l-sub"></div></div>
     <h2 class="sec">Gastos recientes</h2>
+    <div class="filt" id="fx-bar">
+      <label class="per"><span class="lb">Categoría</span>
+        <select id="fx-cat" aria-label="Filtrar gastos por categoría"></select>
+      </label>
+      <button type="button" class="filt-x" id="fx-clear" hidden>Quitar filtro</button>
+    </div>
+    <p class="filt-sum" id="fx-sum" hidden></p>
     <div class="boxwrap"><ul id="l-exp" class="sbox"></ul></div>
   </section>
 
@@ -204,7 +225,11 @@
 
   <section id="loan">
     <form class="add" id="f-loan" novalidate>
-      <label>Persona<input name="person" maxlength="40" autocomplete="off"></label>
+      <div class="field person-f">
+        <label for="ln-person">Persona</label>
+        <input name="person" id="ln-person" maxlength="40" autocomplete="off">
+        <div class="sug" id="ln-sug" hidden><span class="sug-t">Te deben ahora</span><div class="sug-l" id="ln-sugl"></div></div>
+      </div>
       <label>Monto prestado ($)<input name="amount" id="l-amt" type="number" step="0.01" min="0.01" inputmode="decimal"></label>
       <div class="field">
         <label for="l-back">Monto a devolver ($)</label>
@@ -224,6 +249,13 @@
     <h2 class="sec">Lo que te deben</h2>
     <div class="owed" id="owed"></div>
     <h2 class="sec">Todos los préstamos</h2>
+    <div class="filt" id="fp-bar">
+      <label class="per"><span class="lb">Persona</span>
+        <select id="fp-person" aria-label="Filtrar préstamos por persona"></select>
+      </label>
+      <button type="button" class="filt-x" id="fp-clear" hidden>Quitar filtro</button>
+    </div>
+    <p class="filt-sum" id="fp-sum" hidden></p>
     <div class="boxwrap"><ul id="l-loan" class="sbox"></ul></div>
   </section>
 

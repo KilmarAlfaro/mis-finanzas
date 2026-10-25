@@ -888,16 +888,33 @@ li>span:last-child .btn.sm[data-labono]{margin-right:.5rem}
   .filt .lb{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}   /* la primera opción ya dice "Todas…" */
 }
 
-/* --- Sugerencias de personas que te deben (formulario de préstamos) --- */
+/* --- Sugerencias de personas que te deben (formulario de préstamos): lista con viñetas --- */
 form.add>.field.person-f{flex:2 1 15rem}
-.sug{display:grid;gap:.45rem;margin-top:.6rem}
-.sug-t{font-size:.76rem;font-weight:800;color:var(--mute);text-transform:uppercase;letter-spacing:.06em}
-.sug-l{display:flex;flex-wrap:wrap;gap:.45rem}
-.sug-c{display:inline-flex;align-items:center;gap:.5rem;padding:.28rem .8rem .28rem .28rem;border:1.5px solid #B5D3C9;background:#fff;border-radius:99px;cursor:pointer;font:inherit;font-size:.95rem;color:var(--ink);transition:background .15s,border-color .15s}
+.sug{display:grid;gap:.5rem;margin-top:.7rem}
+.sug-t{display:flex;align-items:flex-start;gap:.5rem;margin:0;font-size:.9rem;font-weight:800;color:var(--ink);line-height:1.3;text-wrap:balance}
+.sug-t svg{width:1.15rem;height:1.15rem;flex:none;margin-top:.08rem;color:var(--acc)}
+.sug-l{display:grid;border:1px solid #B5D3C9;border-radius:12px;overflow:hidden;background:#fff}
+.sug-c{display:flex;align-items:center;gap:.75rem;width:100%;padding:.7rem .85rem;border:0;border-top:1px solid #DCE9E4;background:#fff;cursor:pointer;font:inherit;font-size:1rem;color:var(--ink);text-align:left;transition:background .15s}
+.sug-c:first-child{border-top:0}
 .sug-c:hover{background:var(--acc2)}
-.sug-c.on{background:var(--acc);border-color:var(--acc);color:#fff}
+.sug-dot{width:.7rem;height:.7rem;border-radius:50%;background:var(--acc);flex:none;box-shadow:0 0 0 3px var(--acc2)}
+.sug-n{flex:1;min-width:0;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sug-a{flex:none;font-weight:800;color:var(--acc);font-size:.95rem}
+.sug-c.on{background:var(--acc2)}
+.sug-c.on .sug-dot{background:#fff;border:3px solid var(--acc);box-shadow:none}
 .sug-i{display:grid;place-items:center;width:1.75rem;height:1.75rem;border-radius:50%;background:var(--acc2);color:var(--acc);font-weight:800;font-size:.85rem;flex:none}
-.sug-c.on .sug-i{background:#ffffff33;color:#fff}
-.sug-n{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:10rem}
-.sug-a{font-size:.85rem;opacity:.8;font-weight:600}
+
+/* --- Título "Lo que te deben" con el total a la derecha --- */
+.sec-row{display:flex;align-items:center;justify-content:space-between;gap:.8rem;flex-wrap:wrap;margin:.4rem 0 .8rem}
+.sec-row h2.sec{margin:0}
+.sec-tot{display:inline-flex;align-items:baseline;gap:.4rem;padding:.35rem .85rem;border-radius:99px;background:var(--acc2);color:var(--acc);font-size:.88rem;font-weight:700;white-space:nowrap;margin-left:auto}
+.sec-tot b{font-size:1.05rem;font-weight:800;color:var(--ink)}
 .filt-sum>span:not(.sug-i):not(.ctag){flex:1 1 0;min-width:9rem}
+
+.sec-tot .tl-s{display:none}
+@media(max-width:480px){
+  .sec-tot .tl-l{display:none}.sec-tot .tl-s{display:inline}
+  .sec-row h2.sec{font-size:1.12rem}
+}
+.sec-row h2.sec{white-space:nowrap}
+@media(max-width:480px){.sec-tot{padding:.3rem .7rem;font-size:.82rem;gap:.3rem}.sec-tot b{font-size:.98rem}}

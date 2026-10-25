@@ -1576,16 +1576,22 @@ $('#fp-clear').onclick = () => { fPerson = 'all'; render(); };
 $('#exp').addEventListener('click', e => { if (e.target.closest('[data-clear="exp"]')) { fCat = 'all'; render(); } });
 
 /* Formulario de préstamos: sugiere solo a quienes te deben ahora. Cuando saldan, dejan de aparecer */
+let sugOpen = false;                                    // la lista de personas empieza guardada (cerrada) y se abre con el "+"
 function renderSug() {
   if (!D) return;
   const q = norm($('#ln-person').value), list = peopleInfo().filter(p => p.left > 0 && (!q || norm(p.name).includes(q)));
   $('#ln-sug').hidden = !list.length;
+  $('#ln-sugn').textContent = list.length;
+  $('#ln-sug').classList.toggle('open', sugOpen);
+  $('#ln-sugt').setAttribute('aria-expanded', String(sugOpen));
+  $('#ln-sugl').hidden = !sugOpen;
   $('#ln-sugl').innerHTML = list.map(p => `<button type="button" role="listitem" class="sug-c${norm(p.name) === q ? ' on' : ''}" data-name="${esc(p.name)}" aria-pressed="${norm(p.name) === q}"><span class="sug-dot" aria-hidden="true"></span><span class="sug-n">${esc(p.name)}</span><span class="sug-a">${money(p.left)}</span></button>`).join('');
 }
+$('#ln-sugt').onclick = () => { sugOpen = !sugOpen; renderSug(); };
 $('#ln-person').addEventListener('input', renderSug);
 $('#ln-sugl').addEventListener('click', e => {
   const b = e.target.closest('[data-name]'); if (!b) return;
-  $('#ln-person').value = b.dataset.name; renderSug(); $('#l-amt').focus();
+  $('#ln-person').value = b.dataset.name; sugOpen = false; renderSug(); $('#l-amt').focus();   // al elegir, la lista se guarda sola
 });
 $('#f-loan').addEventListener('reset', () => setTimeout(renderSug, 0));
 

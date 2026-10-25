@@ -182,6 +182,7 @@ const SERVICE_GROUPS = [
     ['dropbox', 'Dropbox', 'Db', '#0061FF', '#FFFFFF', null, 'dropbox.com'],
     ['notion', 'Notion', 'N', '#F1F1EF', '#111111', null, 'notion.so'],
     ['duolingo', 'Duolingo', 'Du', '#58CC02', '#FFFFFF', null, 'duolingo.com'],
+    ['discord', 'Discord Nitro', 'D', '#5865F2', '#FFFFFF', null, 'discord.com'],
     ['kindle', 'Kindle Unlimited', 'K', '#232F3E', '#FF9900', null, 'amazon.com']
   ] },
   { name: 'Juegos', items: [

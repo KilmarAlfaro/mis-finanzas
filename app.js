@@ -50,6 +50,7 @@ const CHECKC = svg('<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4
 const CLOCK = svg('<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>');
 const FLAG = svg('<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22v-7"/>');
 const EXCL = svg('<path d="M12 8v5"/><path d="M12 17h.01"/>');
+const CAL = svg('<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/>');
 const LOGOUT = svg('<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>');
 const UNDO = svg('<path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/>');
 /* Color del ícono (blanco u oscuro) según el que tenga más contraste con el fondo */
@@ -1399,7 +1400,7 @@ function dayLabel(d) {
 }
 function byDay(list, rowFn, totalFn) {
   let out = '', cur = null, grp = [];
-  const flush = () => { if (grp.length) out += `<li class="dayh"><span>${esc(dayLabel(cur))}</span><span class="dt">${totalFn ? totalFn(grp) : ''}</span></li>` + grp.map(rowFn).join(''); grp = []; };
+  const flush = () => { if (grp.length) out += `<li class="dayh"><span class="dl">${CAL}${esc(dayLabel(cur))}</span><span class="dt">${totalFn ? totalFn(grp) : ''}</span></li>` + grp.map(rowFn).join(''); grp = []; };
   list.forEach(x => { if (x.date !== cur) { flush(); cur = x.date; } grp.push(x); });
   flush();
   return out;

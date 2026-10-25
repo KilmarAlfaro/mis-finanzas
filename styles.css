@@ -501,9 +501,11 @@ li>span:last-child{display:flex;align-items:center;gap:.4rem;white-space:nowrap}
 li>span:last-child .btn.sm{margin-right:0}
 
 /* ===== Listas agrupadas por día (estilo PayPal) ===== */
-ul.sbox li.dayh{min-height:0;height:auto;display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.55rem 1.3rem;background:#F1F6F4;color:var(--mute);font-size:.8rem;font-weight:800;text-transform:uppercase;letter-spacing:.05em;position:sticky;top:0;z-index:2;border-top:0;border-bottom:1px solid var(--line)}
-ul.sbox li.dayh .dt{font-weight:800;color:var(--ink);text-transform:none;letter-spacing:0;font-size:.85rem}
-ul.sbox li.dayh:not(:first-child){border-top:1px solid var(--line)}
+ul.sbox li.dayh{min-height:0;height:auto;display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.7rem 1.3rem;background:#D9ECE5;color:var(--acc);font-size:.82rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;position:sticky;top:0;z-index:2;border-top:1px solid #B5D3C9;border-bottom:1px solid #B5D3C9;box-shadow:inset 5px 0 0 var(--acc)}
+ul.sbox li.dayh:first-child{border-top:0}
+ul.sbox li.dayh .dl{display:flex;align-items:center;gap:.5rem;min-width:0}
+ul.sbox li.dayh .dl svg{width:1.1rem;height:1.1rem;flex:none}
+ul.sbox li.dayh .dt{font-weight:800;color:var(--ink);text-transform:none;letter-spacing:0;font-size:.85rem;background:#fff;border:1px solid #B5D3C9;border-radius:99px;padding:.15rem .7rem;white-space:nowrap}
 
 /* ===== Metas de ahorro ===== */
 #f-goal>.gname-l{flex:1 1 10.5rem}
@@ -629,7 +631,10 @@ li small{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;ov
   .chart{padding:1rem}
   li{padding:.75rem .9rem;gap:.6rem}
   li b,li .amt{font-size:1rem}
-  ul.sbox li.dayh{padding:.5rem .9rem}
+  ul.sbox li.dayh{padding:.6rem .9rem;font-size:.75rem;letter-spacing:.025em;gap:.6rem}
+  ul.sbox li.dayh .dl{gap:.4rem}
+  ul.sbox li.dayh .dl svg{width:1rem;height:1rem}
+  ul.sbox li.dayh .dt{padding:.12rem .6rem;font-size:.82rem}
   .goal{padding:1rem 1rem .9rem 1.3rem}
   .g-nums b{font-size:1.45rem}
   .tools .btn{flex:1 1 100%}

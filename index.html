@@ -228,7 +228,7 @@
       <div class="field person-f">
         <label for="ln-person">Persona</label>
         <input name="person" id="ln-person" maxlength="40" autocomplete="off">
-        <div class="sug" id="ln-sug" hidden><span class="sug-t">Te deben ahora</span><div class="sug-l" id="ln-sugl"></div></div>
+        <div class="sug" id="ln-sug" hidden><p class="sug-t"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg><span>Agregar otro préstamo a alguien que aún te debe</span></p><div class="sug-l" id="ln-sugl" role="list"></div></div>
       </div>
       <label>Monto prestado ($)<input name="amount" id="l-amt" type="number" step="0.01" min="0.01" inputmode="decimal"></label>
       <div class="field">
@@ -246,7 +246,7 @@
       <label>Nota<input name="note" maxlength="80" placeholder="Opcional" autocomplete="off"></label>
       <button class="btn" type="submit">Anotar préstamo</button>
     </form>
-    <h2 class="sec">Lo que te deben</h2>
+    <div class="sec-row"><h2 class="sec">Lo que te deben</h2><span class="sec-tot" id="owed-tot" hidden title="Total que tienes prestado ahora (lo que falta por cobrar)"><span class="tl-l">Total prestado</span><span class="tl-s">Total</span><b></b></span></div>
     <div class="owed" id="owed"></div>
     <h2 class="sec">Todos los préstamos</h2>
     <div class="filt" id="fp-bar">

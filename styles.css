@@ -925,3 +925,15 @@ form.add>.field.person-f{flex:2 1 15rem}
 }
 .sec-row h2.sec{white-space:nowrap}
 @media(max-width:480px){.sec-tot{padding:.3rem .7rem;font-size:.82rem;gap:.3rem}.sec-tot b{font-size:.98rem}}
+
+
+/* --- Ojito para mostrar/ocultar la contraseña --- */
+.pwf{position:relative;display:block}
+.pwf input{width:100%;padding-right:3.2rem}
+.eye{position:absolute;top:50%;right:.4rem;transform:translateY(-50%);width:2.5rem;height:2.5rem;display:grid;place-items:center;border:0;border-radius:50%;background:none;color:var(--mute);cursor:pointer;transition:background .15s,color .15s}
+.eye:hover{background:var(--acc2);color:var(--acc)}
+.eye.on{color:var(--acc)}
+.eye svg{width:1.3rem;height:1.3rem}
+.eye .i-off{display:none}
+.eye.on .i-on{display:none}
+.eye.on .i-off{display:block}

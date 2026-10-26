@@ -126,8 +126,23 @@ function beginBoot() { $('#lock').classList.add('booting'); $('#boot').hidden = 
 function endBoot() { clearTimeout(bootTimer); $('#lock').classList.remove('booting'); $('#boot').hidden = true; }
 
 /* ---------- Pantalla de acceso ---------- */
+/* Ojito: muestra u oculta la contraseña del campo (al cambiar de pantalla siempre vuelve a quedar oculta) */
+function setEye(btn, show) {
+  const inp = $('#' + btn.dataset.eye);
+  inp.type = show ? 'text' : 'password';
+  btn.classList.toggle('on', show);
+  btn.setAttribute('aria-pressed', String(show));
+  const t = show ? 'Ocultar contraseña' : 'Mostrar contraseña';
+  btn.setAttribute('aria-label', t); btn.title = t;
+}
+const resetEyes = () => document.querySelectorAll('.eye').forEach(b => setEye(b, false));
+document.querySelectorAll('.eye').forEach(b => b.addEventListener('click', () => {
+  const inp = $('#' + b.dataset.eye), pos = inp.selectionStart;
+  setEye(b, inp.type === 'password');
+  inp.focus(); try { inp.setSelectionRange(pos, pos); } catch {}            // el cursor se queda donde estaba
+}));
 function setMode(m) {
-  mode = m;
+  mode = m; resetEyes();
   const local = B.mode === 'local', up = m === 'up', reset = m === 'reset';
   document.querySelectorAll('[data-mode]').forEach(b => b.setAttribute('aria-pressed', b.dataset.mode === m));
   $('#seg').hidden = reset;

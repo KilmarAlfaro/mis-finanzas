@@ -102,6 +102,7 @@
       <label class="per">Ver gastos de
         <select id="per"></select>
       </label>
+      <button type="button" class="btn alt sm" id="per-edit" hidden>Cambiar fechas</button>
     </div>
 
     <div class="charts">
@@ -316,6 +317,39 @@
     <div class="c-btns">
       <button class="btn" id="lo-save" type="button">Abonar</button>
       <button class="btn alt" id="lo-cancel" type="button">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="permodal" hidden>
+  <div class="dlg gdlg" role="dialog" aria-modal="true" aria-labelledby="pm-title">
+    <h2 id="pm-title">Período personalizado</h2>
+    <p class="g-sub">Elige qué día, mes, año o rango de fechas quieres ver.</p>
+    <div class="ptabs" role="tablist" aria-label="Tipo de período">
+      <button type="button" role="tab" data-pm="day" aria-selected="true">Día</button>
+      <button type="button" role="tab" data-pm="month" aria-selected="false">Mes</button>
+      <button type="button" role="tab" data-pm="year" aria-selected="false">Año</button>
+      <button type="button" role="tab" data-pm="range" aria-selected="false">Rango</button>
+    </div>
+    <div class="g-fields" id="pm-day">
+      <label>Fecha<input id="pm-d1" class="date" type="text" autocomplete="off"></label>
+    </div>
+    <div class="g-fields" id="pm-month" hidden>
+      <label>Mes<select id="pm-m"></select></label>
+      <label>Año<select id="pm-y1"></select></label>
+    </div>
+    <div class="g-fields" id="pm-year" hidden>
+      <label>Año<select id="pm-y2"></select></label>
+    </div>
+    <div class="g-fields" id="pm-range" hidden>
+      <label>Desde<input id="pm-from" class="date" type="text" autocomplete="off"></label>
+      <label>Hasta<input id="pm-to" class="date" type="text" autocomplete="off"></label>
+    </div>
+    <span class="derr" id="pm-err" role="alert" hidden></span>
+    <div class="pm-prev" id="pm-prev" aria-live="polite"></div>
+    <div class="c-btns">
+      <button class="btn" id="pm-ok" type="button">Ver registros</button>
+      <button class="btn alt" id="pm-cancel" type="button">Cancelar</button>
     </div>
   </div>
 </div>

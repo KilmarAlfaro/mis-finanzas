@@ -937,3 +937,28 @@ form.add>.field.person-f{flex:2 1 15rem}
 .eye .i-off{display:none}
 .eye.on .i-on{display:none}
 .eye.on .i-off{display:block}
+
+
+/* --- Filas de lista: detalle en líneas separadas y nota en cajita --- */
+li>.rd{grid-column:1/-1;grid-row:2;display:grid;gap:.4rem;margin-top:.1rem;padding-top:.6rem;border-top:1px dashed var(--line)}
+li .rd-i{display:grid;grid-template-columns:5.4rem minmax(0,1fr);gap:.6rem;align-items:baseline;font-size:.92rem}
+li .rd-i b{display:block;overflow:visible;font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--acc)}
+li .rd-i span{color:var(--ink);font-weight:600;overflow-wrap:anywhere}
+li .rd-note{margin-top:.15rem;padding:.55rem .75rem .6rem;background:#F1F7F4;border:1px solid #D3E4DD;border-left:4px solid var(--acc);border-radius:10px}
+li .rd-note b{display:block;overflow:visible;font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--acc);margin-bottom:.15rem}
+li .rd-note p{margin:0;font-size:.95rem;color:var(--ink);line-height:1.4;white-space:pre-wrap;overflow-wrap:anywhere}
+li.done .rd-i span,li.done .rd-note p{text-decoration:none}
+@media(max-width:480px){li .rd-i{grid-template-columns:4.8rem minmax(0,1fr);font-size:.9rem}}
+
+/* --- Período personalizado --- */
+.bar{flex-wrap:wrap;align-items:center;gap:.6rem .8rem}
+.ptabs{display:grid;grid-template-columns:repeat(4,1fr);gap:.25rem;padding:.25rem;background:var(--acc2);border-radius:12px}
+.ptabs button{border:0;background:none;padding:.6rem .2rem;border-radius:9px;font:inherit;font-weight:700;color:var(--mute);cursor:pointer;transition:background .15s,color .15s}
+.ptabs button[aria-selected=true]{background:#fff;color:var(--ink);box-shadow:0 1px 3px #0002}
+.pm-prev{display:grid;gap:.15rem;padding:.7rem .85rem;background:#F1F7F4;border:1px solid #D3E4DD;border-left:4px solid var(--acc);border-radius:10px;color:var(--mute);font-size:.95rem}
+.pm-prev b{color:var(--ink)}
+.pm-prev>b{font-size:1rem}
+
+/* Con el detalle en líneas las filas son más altas: las listas muestran más alto antes de usar su propio scroll */
+#l-exp,#l-sav,#l-loan,#l-hist{max-height:min(78vh,44rem)}
+.g-fields select{width:100%;padding:.7rem .9rem;border:1px solid #AEBFB9;border-radius:10px;background:#fff;min-height:3rem}

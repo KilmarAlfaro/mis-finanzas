@@ -962,3 +962,16 @@ li.done .rd-i span,li.done .rd-note p{text-decoration:none}
 /* Con el detalle en líneas las filas son más altas: las listas muestran más alto antes de usar su propio scroll */
 #l-exp,#l-sav,#l-loan,#l-hist{max-height:min(78vh,44rem)}
 .g-fields select{width:100%;padding:.7rem .9rem;border:1px solid #AEBFB9;border-radius:10px;background:#fff;min-height:3rem}
+
+/* --- Ventana "¿Estás seguro que quieres salir?" --- */
+#exmodal .m-skip{text-align:left;margin:.1rem 0 .5rem;width:100%}
+
+
+/* --- Ordenar categorías y cuentas arrastrando --- */
+#dd-list,#cdd-list{position:relative}
+.dd-item{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.dd-item.lift{position:relative;z-index:6;background:#fff;border-radius:12px;box-shadow:0 12px 30px #17302b59;outline:2px solid var(--acc);cursor:grabbing;transition:none}
+.sorting .dd-item:not(.lift){opacity:.8}
+.sorting{touch-action:none}
+.dd-hint{display:flex;align-items:center;gap:.5rem;margin:.3rem .5rem .1rem;font-size:.8rem;color:var(--mute)}
+.dd-hint svg{width:.9rem;height:.9rem;flex:none;opacity:.7}

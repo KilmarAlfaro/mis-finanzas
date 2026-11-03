@@ -69,7 +69,11 @@ const monthName = ym => new Date(+ym.slice(0, 4), +ym.slice(5, 7) - 1, 1).toLoca
 const prevYm = ym => { let y = +ym.slice(0, 4), m = +ym.slice(5, 7) - 2; if (m < 0) { m = 11; y--; } return y + '-' + String(m + 1).padStart(2, '0'); };
 
 const B = (window.FIREBASE_CONFIG && window.FIREBASE_CONFIG.apiKey) ? Cloud : Local;
-let D = null, mode = 'in', pending = null, per = 'month', perCustom = null;   // perCustom = { from, to, label } cuando el período es "Personalizado"
+/* El período del historial se recuerda entre visitas. Si estaba en "Personalizado", al recargar vuelve a "Mes actual" */
+const PER_KEY = 'fin-per';
+function loadPer() { try { const v = localStorage.getItem(PER_KEY); if (v && PERIODS[v] && v !== 'custom') return v; } catch {} return 'month'; }
+function savePer() { try { localStorage.setItem(PER_KEY, per === 'custom' ? 'cur' : per); } catch {} }
+let D = null, mode = 'in', pending = null, per = loadPer(), perCustom = null;   // perCustom = { from, to, label } cuando el período es "Personalizado"
 
 /* ---------- Avisos arriba (verdes) ---------- */
 function toast(text, kind = 'ok') {
@@ -525,7 +529,7 @@ $('#per').innerHTML = Object.entries(PERIODS).map(([k, v]) => `<option value="${
 $('#per').value = per;
 $('#per').onchange = e => {
   if (e.target.value === 'custom') { openPM(); return; }          // "Personalizado" abre el selector de fechas
-  per = e.target.value; render();
+  per = e.target.value; savePer(); render();
 };
 /* Rango de fechas [desde, hasta] del período elegido (vacío = sin límite) */
 function periodRange(p) {
@@ -592,7 +596,7 @@ $('#permodal').addEventListener('input', pmPreview);
 $('#pm-cancel').onclick = () => closePM(true);
 $('#pm-ok').onclick = async () => {
   const r = pmPreview(); if (r.err) return;
-  per = 'custom'; perCustom = { from: r.from, to: r.to, label: r.label, kind: pmKind };
+  per = 'custom'; perCustom = { from: r.from, to: r.to, label: r.label, kind: pmKind }; savePer();
   $('#per').value = 'custom';
   const closing = closePM(false); render(); await closing;
 };
@@ -776,9 +780,9 @@ $('#cmodal').addEventListener('click', e => { if (e.target.id === 'cmodal') answ
 const tabbable = x => !x.disabled && x.offsetParent !== null && x.tabIndex >= 0 &&
   (x.type !== 'radio' || x.checked || (!document.querySelector(`input[name="${x.name}"]:checked`) && document.querySelector(`input[name="${x.name}"]`) === x));
 document.addEventListener('keydown', e => {
-  const open = [$('#accmodal'), $('#gmodal'), $('#lomodal'), $('#permodal'), $('#svcmodal'), $('#catmodal'), $('#fmodal'), $('#cmodal')].find(m => !m.hidden);
+  const open = [$('#accmodal'), $('#gmodal'), $('#lomodal'), $('#permodal'), $('#exmodal'), $('#svcmodal'), $('#catmodal'), $('#fmodal'), $('#cmodal')].find(m => !m.hidden);
   if (open) {
-    if (e.key === 'Escape') { if (open.id === 'cmodal') answer(false); else if (open.id === 'catmodal') closeCat(); else if (open.id === 'svcmodal') { closeSvc(); $('#svc-btn').focus(); } else if (open.id === 'gmodal') closeG(); else if (open.id === 'lomodal') closeL(); else if (open.id === 'permodal') closePM(true); else if (open.id === 'accmodal') closeAcc(); else fAnswer(null); }
+    if (e.key === 'Escape') { if (open.id === 'cmodal') answer(false); else if (open.id === 'catmodal') closeCat(); else if (open.id === 'svcmodal') { closeSvc(); $('#svc-btn').focus(); } else if (open.id === 'gmodal') closeG(); else if (open.id === 'lomodal') closeL(); else if (open.id === 'permodal') closePM(true); else if (open.id === 'exmodal') closeExit(); else if (open.id === 'accmodal') closeAcc(); else fAnswer(null); }
     else if (e.key === 'Tab') {
       const f = [...open.querySelectorAll('input,select,button')].filter(tabbable);
       if (!f.length) return;
@@ -1675,6 +1679,128 @@ $('#ln-sugl').addEventListener('click', e => {
   $('#ln-person').value = b.dataset.name; sugOpen = false; renderSug(); $('#l-amt').focus();   // al elegir, la lista se guarda sola
 });
 $('#f-loan').addEventListener('reset', () => setTimeout(renderSug, 0));
+
+/* ---------- Ordenar categorías y cuentas: mantener presionado y arrastrar (o Alt + ↑/↓ con teclado) ----------
+   Táctil/lápiz: se mantiene presionado ~0.4 s y vibra; mouse: basta con arrastrar. El orden se guarda en D.cats / D.met y todas las
+   listas y menús de la app lo respetan. Los elementos eliminados (deleted) conservan su lugar y no se mueven. */
+function applyOrder(key, ids) {
+  const arr = D[key], byId = new Map(arr.map(x => [x.id, x]));
+  if (ids.length !== arr.filter(x => !x.deleted).length || ids.some(i => !byId.has(i))) return;
+  let k = 0;
+  D[key] = arr.map(x => x.deleted ? x : byId.get(ids[k++]));
+  render(); persist(); toast('Orden guardado');
+}
+function makeSortable(list, idAttr, key) {
+  let timer = null, st = null, suppress = false, scroller = null;
+  const items = () => [...list.querySelectorAll('.dd-item')];
+  const ids = () => items().map(x => x.dataset[idAttr]);
+  const stop = () => { clearTimeout(timer); timer = null; clearInterval(scroller); scroller = null; };
+  function place(y) {                                           // sigue al dedo y reacomoda los demás elementos
+    const { it, grab } = st, lr = list.getBoundingClientRect();
+    const top = y - lr.top + list.scrollTop - grab, center = top + it.offsetHeight / 2;
+    const sibs = items().filter(x => x !== it);
+    const ref = sibs.find(s => center < s.offsetTop + s.offsetHeight / 2) || null;
+    if (it.nextElementSibling !== ref) list.insertBefore(it, ref);
+    it.style.transform = '';
+    it.style.transform = `translateY(${top - it.offsetTop}px)`;
+  }
+  function begin() {
+    if (!st || st.active) return;
+    st.active = true; clearTimeout(timer);
+    st.before = ids().join('|');
+    const r = st.it.getBoundingClientRect(); st.grab = st.y0 - r.top;
+    st.it.classList.add('lift'); list.classList.add('sorting');
+    try { st.it.setPointerCapture(st.pid); } catch {}
+    if (navigator.vibrate) navigator.vibrate(18);
+    place(st.y);
+    scroller = setInterval(() => {                              // si lo acercas al borde, la lista se desplaza sola
+      const lr = list.getBoundingClientRect();
+      if (st.y < lr.top + 36) list.scrollTop -= 8; else if (st.y > lr.bottom - 36) list.scrollTop += 8; else return;
+      place(st.y);
+    }, 16);
+  }
+  function finish() {
+    stop();
+    if (!st) return;
+    const s = st; st = null;
+    if (!s.active) return;
+    s.it.classList.remove('lift'); s.it.style.transform = ''; list.classList.remove('sorting');
+    suppress = true; setTimeout(() => { suppress = false; }, 350);   // el "soltar" no debe contar como un toque que selecciona
+    const now = ids();
+    if (now.join('|') !== s.before) applyOrder(key, now);
+  }
+  list.addEventListener('pointerdown', e => {
+    const it = e.target.closest('.dd-item');
+    if (!it || e.target.closest('button') || (e.pointerType === 'mouse' && e.button !== 0)) return;
+    st = { it, pid: e.pointerId, x0: e.clientX, y0: e.clientY, y: e.clientY, active: false, touch: e.pointerType !== 'mouse' };
+    if (st.touch) timer = setTimeout(begin, 400);
+  });
+  list.addEventListener('pointermove', e => {
+    if (!st || e.pointerId !== st.pid) return;
+    st.y = e.clientY;
+    if (st.active) { place(e.clientY); return; }
+    const d = Math.hypot(e.clientX - st.x0, e.clientY - st.y0);
+    if (st.touch && d > 10) { stop(); st = null; }               // se movió antes de tiempo: es un desplazamiento normal
+    else if (!st.touch && d > 6) begin();
+  });
+  ['pointerup', 'pointercancel'].forEach(t => list.addEventListener(t, e => { if (st && e.pointerId === st.pid) finish(); }));
+  list.addEventListener('touchmove', e => { if (st && st.active) e.preventDefault(); }, { passive: false });   // mientras arrastras, la pantalla no se desplaza
+  list.addEventListener('contextmenu', e => { if (e.target.closest('.dd-item')) e.preventDefault(); });
+  list.addEventListener('click', e => { if (suppress) { e.stopPropagation(); e.preventDefault(); } }, true);
+  list.addEventListener('keydown', e => {                       // teclado: Alt + flecha mueve el elemento enfocado
+    if (!e.altKey || !/^Arrow(Up|Down)$/.test(e.key)) return;
+    const it = e.target.closest('.dd-item'); if (!it) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    const sib = e.key === 'ArrowUp' ? it.previousElementSibling : it.nextElementSibling;
+    if (!sib || !sib.classList.contains('dd-item')) return;
+    e.key === 'ArrowUp' ? list.insertBefore(it, sib) : list.insertBefore(sib, it);
+    const id = it.dataset[idAttr]; applyOrder(key, ids());
+    const again = items().find(x => x.dataset[idAttr] === id); if (again) again.focus();
+  }, true);
+}
+makeSortable($('#dd-list'), 'mid', 'met');
+makeSortable($('#cdd-list'), 'cid', 'cats');
+
+/* ---------- Botón "atrás" del teléfono: antes de salir pide confirmación ----------
+   Truco con el historial: tras el primer toque se agrega un paso extra (la "guarda"). Al pulsar atrás se vuelve a poner esa guarda
+   y se muestra la ventana; si hay otra ventana abierta, atrás solo la cierra. "Sí, salir" retrocede los dos pasos (guarda + inicio)
+   para salir de verdad. (Chrome ignora pasos agregados sin interacción del usuario, por eso se arma con el primer toque.) */
+let guardArmed = false, exiting = false;
+const overlayOpen = () => [...document.querySelectorAll('.modal')].some(m => !m.hidden) || !$('#dd-menu').hidden || !$('#cdd-menu').hidden;
+function armGuard() { if (guardArmed || exiting) return; guardArmed = true; try { history.pushState({ fin: 'guard' }, ''); } catch {} }
+['pointerdown', 'keydown', 'touchstart'].forEach(ev => document.addEventListener(ev, armGuard, { capture: true, passive: true }));
+window.addEventListener('popstate', () => {
+  if (exiting || !guardArmed) return;
+  try { history.pushState({ fin: 'guard' }, ''); } catch {}              // la guarda vuelve a quedar un paso adelante
+  if (overlayOpen()) { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); return; }
+  openExit();
+});
+window.addEventListener('pageshow', e => { if (e.persisted) exiting = false; });
+function openExit() {
+  $('#ex-outl').hidden = !D;                                              // sin sesión iniciada no hay nada que cerrar
+  $('#ex-out').checked = false;
+  showModal($('#exmodal')); $('#ex-no').focus();
+}
+async function closeExit() { await hideModal($('#exmodal')); }
+function leaveApp() {
+  exiting = true;
+  history.go(-2);                                                          // guarda + pantalla de inicio: sale de la app
+  setTimeout(() => { try { window.close(); } catch {} }, 350);
+  setTimeout(() => { if (document.visibilityState === 'visible') { exiting = false; toast('Para salir, cierra la pestaña o la app desde el selector de apps del teléfono'); } }, 1000);
+}
+$('#ex-no').onclick = closeExit;
+$('#exmodal').addEventListener('click', e => { if (e.target.id === 'exmodal') closeExit(); });
+$('#ex-yes').onclick = async () => {
+  const out = !!D && $('#ex-out').checked;
+  await closeExit();
+  if (out) {
+    forgetLogin();
+    try { sessionStorage.clear(); } catch {}
+    try { await B.logout(); } catch {}
+    if (B.mode === 'local') { D = null; showLock(); }
+  }
+  leaveApp();
+};
 
 /* ---------- App instalable (PWA) ----------
    Registra el service worker (sw.js) y muestra un aviso discreto "Instalar" cuando el navegador lo permite.

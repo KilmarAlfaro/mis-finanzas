@@ -131,6 +131,7 @@
           <input type="hidden" name="cat" id="c-val" value="">
           <div class="dd-menu" id="cdd-menu" hidden>
             <div id="cdd-list" role="listbox" aria-labelledby="cdd-lbl"></div>
+            <p class="dd-hint"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg><span>Mantén presionado y arrastra</span></p>
             <div class="dd-sep" id="cdd-sep"></div>
             <button type="button" class="dd-addbtn" id="cdd-addbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Agregar nueva categoría</button>
           </div>
@@ -192,6 +193,7 @@
           <input type="hidden" name="method" id="m-val" value="efectivo">
           <div class="dd-menu" id="dd-menu" hidden>
             <div id="dd-list" role="listbox" aria-labelledby="dd-lbl"></div>
+            <p class="dd-hint"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg><span>Mantén presionado y arrastra</span></p>
             <div class="dd-sep"></div>
             <button type="button" class="dd-addbtn" id="dd-addbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Agregar tipo de ahorro</button>
           </div>
@@ -350,6 +352,19 @@
     <div class="c-btns">
       <button class="btn" id="pm-ok" type="button">Ver registros</button>
       <button class="btn alt" id="pm-cancel" type="button">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="exmodal" hidden>
+  <div class="dlg cdlg" role="alertdialog" aria-modal="true" aria-labelledby="ex-title" aria-describedby="ex-text">
+    <div class="c-ico warn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></div>
+    <h2 id="ex-title">¿Estás seguro que quieres salir?</h2>
+    <p id="ex-text">Tu información queda guardada y podrás volver cuando quieras.</p>
+    <label class="m-skip" id="ex-outl" hidden><input type="checkbox" id="ex-out"><span><b>¿Quieres cerrar sesión?</b></span></label>
+    <div class="c-btns">
+      <button class="cbtn amber" id="ex-yes" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Sí, salir</button>
+      <button class="cbtn blue" id="ex-no" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>No, quedarme</button>
     </div>
   </div>
 </div>

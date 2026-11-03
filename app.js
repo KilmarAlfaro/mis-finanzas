@@ -22,7 +22,7 @@ const SWATCHES = [['#C0392B', 'Rojo'], ['#E4785A', 'Coral'], ['#E8892B', 'Naranj
   ['#4C7FB5', 'Azul'], ['#2F5FC4', 'Azul fuerte'], ['#5B5BC9', 'Índigo'], ['#8E6BB0', 'Violeta'], ['#C2519B', 'Magenta'],
   ['#E0709A', 'Rosa'], ['#8B6544', 'Marrón'], ['#8A9C96', 'Gris'], ['#4F655F', 'Gris oscuro'], ['#17302B', 'Verde noche']];
 const HEX = /^#[0-9a-f]{6}$/i;
-const PERIODS = { week: 'Última semana', month: 'Último mes', m3: 'Últimos 3 meses', m6: 'Últimos 6 meses', year: 'Último año', all: 'Todos' };
+const PERIODS = { week: 'Última semana', cur: 'Mes actual', month: 'Último mes', m3: 'Últimos 3 meses', m6: 'Últimos 6 meses', year: 'Último año', all: 'Todos', custom: 'Personalizado' };
 const $ = s => document.querySelector(s);
 const money = n => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -69,7 +69,7 @@ const monthName = ym => new Date(+ym.slice(0, 4), +ym.slice(5, 7) - 1, 1).toLoca
 const prevYm = ym => { let y = +ym.slice(0, 4), m = +ym.slice(5, 7) - 2; if (m < 0) { m = 11; y--; } return y + '-' + String(m + 1).padStart(2, '0'); };
 
 const B = (window.FIREBASE_CONFIG && window.FIREBASE_CONFIG.apiKey) ? Cloud : Local;
-let D = null, mode = 'in', pending = null, per = 'month';
+let D = null, mode = 'in', pending = null, per = 'month', perCustom = null;   // perCustom = { from, to, label } cuando el período es "Personalizado"
 
 /* ---------- Avisos arriba (verdes) ---------- */
 function toast(text, kind = 'ok') {
@@ -521,19 +521,82 @@ $('#lo-ablist').addEventListener('click', async e => {
 });
 
 /* ---------- Período del historial ---------- */
-$('#per').innerHTML = Object.entries(PERIODS).map(([k, v]) => `<option value="${k}">${v}</option>`).join('');
+$('#per').innerHTML = Object.entries(PERIODS).map(([k, v]) => `<option value="${k}">${k === 'custom' ? v + '…' : v}</option>`).join('');
 $('#per').value = per;
-$('#per').onchange = e => { per = e.target.value; render(); };
-function cutoff(p) {
-  if (p === 'all') return '';
+$('#per').onchange = e => {
+  if (e.target.value === 'custom') { openPM(); return; }          // "Personalizado" abre el selector de fechas
+  per = e.target.value; render();
+};
+/* Rango de fechas [desde, hasta] del período elegido (vacío = sin límite) */
+function periodRange(p) {
+  if (p === 'all') return { from: '', to: '' };
+  if (p === 'custom') return perCustom ? { from: perCustom.from, to: perCustom.to } : { from: '', to: '' };
+  if (p === 'cur') return { from: today().slice(0, 7) + '-01', to: '' };         // solo el mes en que estamos
   const d = new Date();
   if (p === 'week') d.setDate(d.getDate() - 7);
   else if (p === 'month') d.setMonth(d.getMonth() - 1);
   else if (p === 'm3') d.setMonth(d.getMonth() - 3);
   else if (p === 'm6') d.setMonth(d.getMonth() - 6);
   else d.setFullYear(d.getFullYear() - 1);
-  return localISO(d);
+  return { from: localISO(d), to: '' };
 }
+const periodLabel = () => per === 'custom' && perCustom ? perCustom.label : PERIODS[per];
+
+/* ---------- Período personalizado: día, mes, año o rango ---------- */
+let pmKind = 'day';
+const setD = (id, v) => { const el = $(id); el._flatpickr ? el._flatpickr.setDate(v, false) : (el.value = v); };
+function pmCompute() {
+  const y = x => String(x);
+  if (pmKind === 'day') { const d = $('#pm-d1').value; return d ? { from: d, to: d, label: 'Día ' + fdate(d) } : { err: 'Elige una fecha.' }; }
+  if (pmKind === 'month') { const m = $('#pm-m').value, yr = $('#pm-y1').value, ym = yr + '-' + m, last = new Date(+yr, +m, 0).getDate();
+    return { from: ym + '-01', to: ym + '-' + String(last).padStart(2, '0'), label: cap(monthName(ym)) + ' ' + yr }; }
+  if (pmKind === 'year') { const yr = $('#pm-y2').value; return { from: yr + '-01-01', to: yr + '-12-31', label: 'Año ' + yr }; }
+  const f = $('#pm-from').value, t = $('#pm-to').value;
+  if (!f || !t) return { err: 'Elige la fecha inicial y la final.' };
+  if (f > t) return { err: 'La fecha inicial no puede ser mayor que la final.' };
+  return { from: f, to: t, label: f === t ? 'Día ' + fdate(f) : fdate(f) + ' – ' + fdate(t) };
+}
+function pmPreview() {
+  const r = pmCompute(), box = $('#pm-prev'), err = $('#pm-err');
+  if (r.err) { box.textContent = ''; box.hidden = true; err.textContent = r.err; err.hidden = false; return r; }
+  err.hidden = true;
+  const l = D.exp.filter(e => e.date >= r.from && e.date <= r.to);
+  box.hidden = false;
+  box.innerHTML = `<b>${esc(r.label)}</b><span>${l.length ? `${l.length} ${l.length === 1 ? 'gasto' : 'gastos'} · <b>${money(sum(l))}</b>` : 'Sin gastos en este período'}</span>`;
+  return r;
+}
+function pmKindSet(k) {
+  pmKind = k;
+  document.querySelectorAll('[data-pm]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.pm === k)));
+  ['day', 'month', 'year', 'range'].forEach(x => { $('#pm-' + x).hidden = x !== k; });
+  pmPreview();
+}
+function openPM() {
+  const t = today(), ys = [...D.exp, ...D.sav, ...D.loan].map(x => +x.date.slice(0, 4)).concat(+t.slice(0, 4)), y0 = Math.min(...ys), y1 = Math.max(...ys);
+  const yearOpts = Array.from({ length: y1 - y0 + 1 }, (_, i) => y1 - i).map(y => `<option value="${y}">${y}</option>`).join('');
+  $('#pm-y1').innerHTML = $('#pm-y2').innerHTML = yearOpts;
+  $('#pm-m').innerHTML = Array.from({ length: 12 }, (_, i) => `<option value="${String(i + 1).padStart(2, '0')}">${cap(new Date(2000, i, 1).toLocaleDateString('es', { month: 'long' }))}</option>`).join('');
+  $('#pm-m').value = t.slice(5, 7); $('#pm-y1').value = $('#pm-y2').value = t.slice(0, 4);
+  setD('#pm-d1', t); setD('#pm-from', t.slice(0, 7) + '-01'); setD('#pm-to', t);
+  if (per === 'custom' && perCustom) { setD('#pm-from', perCustom.from); setD('#pm-to', perCustom.to); setD('#pm-d1', perCustom.from); }
+  pmKindSet(per === 'custom' && perCustom && perCustom.kind ? perCustom.kind : 'day');
+  showModal($('#permodal'));
+}
+async function closePM(revert) {
+  if (revert) $('#per').value = per;                               // si cancela, el selector vuelve al período anterior
+  await hideModal($('#permodal'));
+}
+document.querySelectorAll('[data-pm]').forEach(b => b.addEventListener('click', () => pmKindSet(b.dataset.pm)));
+$('#permodal').addEventListener('change', pmPreview);
+$('#permodal').addEventListener('input', pmPreview);
+$('#pm-cancel').onclick = () => closePM(true);
+$('#pm-ok').onclick = async () => {
+  const r = pmPreview(); if (r.err) return;
+  per = 'custom'; perCustom = { from: r.from, to: r.to, label: r.label, kind: pmKind };
+  $('#per').value = 'custom';
+  const closing = closePM(false); render(); await closing;
+};
+$('#per-edit').onclick = openPM;
 
 /* ---------- Resumen mensual ---------- */
 function pick(arr, seed) {
@@ -713,9 +776,9 @@ $('#cmodal').addEventListener('click', e => { if (e.target.id === 'cmodal') answ
 const tabbable = x => !x.disabled && x.offsetParent !== null && x.tabIndex >= 0 &&
   (x.type !== 'radio' || x.checked || (!document.querySelector(`input[name="${x.name}"]:checked`) && document.querySelector(`input[name="${x.name}"]`) === x));
 document.addEventListener('keydown', e => {
-  const open = [$('#accmodal'), $('#gmodal'), $('#lomodal'), $('#svcmodal'), $('#catmodal'), $('#fmodal'), $('#cmodal')].find(m => !m.hidden);
+  const open = [$('#accmodal'), $('#gmodal'), $('#lomodal'), $('#permodal'), $('#svcmodal'), $('#catmodal'), $('#fmodal'), $('#cmodal')].find(m => !m.hidden);
   if (open) {
-    if (e.key === 'Escape') { if (open.id === 'cmodal') answer(false); else if (open.id === 'catmodal') closeCat(); else if (open.id === 'svcmodal') { closeSvc(); $('#svc-btn').focus(); } else if (open.id === 'gmodal') closeG(); else if (open.id === 'lomodal') closeL(); else if (open.id === 'accmodal') closeAcc(); else fAnswer(null); }
+    if (e.key === 'Escape') { if (open.id === 'cmodal') answer(false); else if (open.id === 'catmodal') closeCat(); else if (open.id === 'svcmodal') { closeSvc(); $('#svc-btn').focus(); } else if (open.id === 'gmodal') closeG(); else if (open.id === 'lomodal') closeL(); else if (open.id === 'permodal') closePM(true); else if (open.id === 'accmodal') closeAcc(); else fAnswer(null); }
     else if (e.key === 'Tab') {
       const f = [...open.querySelectorAll('input,select,button')].filter(tabbable);
       if (!f.length) return;
@@ -1393,15 +1456,17 @@ window.addEventListener('resize', updateBoxes);
 let ch1, ch2;
 /* Más reciente primero: por fecha y, dentro del mismo día, el último que se agregó va arriba */
 const sorted = a => a.map((x, i) => [x, i]).sort((p, q) => q[0].date.localeCompare(p[0].date) || q[1] - p[1]).map(p => p[0]);
-function row(main, sub, amt, k, id, neg, extra, cls, ico) {
-  const text = `<div><b>${main}</b><small>${sub}</small></div>`;
-  return `<li class="${cls || ''}">${ico ? `<div class="lead">${ico}${text}</div>` : text}<span class="amt ${neg ? 'neg' : ''}">${amt}</span><span>${extra || ''}<button class="x" data-del="${k}:${id}" aria-label="Eliminar registro" title="Eliminar">${TRASH}</button></span></li>`;
+/* Fila de lista: título + monto + acciones, y debajo el detalle en líneas separadas (Fecha, Cuenta, Nota…) con la nota en una cajita */
+function row(main, det, amt, k, id, neg, extra, cls, ico) {
+  const text = `<div><b>${main}</b></div>`;
+  return `<li class="${cls || ''}">${ico ? `<div class="lead">${ico}${text}</div>` : text}<span class="amt ${neg ? 'neg' : ''}">${amt}</span>${det ? `<div class="rd">${det}</div>` : ''}<span>${extra || ''}<button class="x" data-del="${k}:${id}" aria-label="Eliminar registro" title="Eliminar">${TRASH}</button></span></li>`;
 }
+const rdI = (label, val) => `<div class="rd-i"><b>${label}</b><span>${val}</span></div>`;
+const rdNote = n => n ? `<div class="rd-note"><b>Nota</b><p>${esc(n)}</p></div>` : '';
 const expRow = e => { const c = catOf(e.cat);
-  const acc = e.m && (activeMethods().length > 1 || e.m !== 'efectivo') ? ' · ' + esc(methodOf(e.m).name) : '';   // de qué cuenta salió
-  return row(esc(c.name), fdate(e.date) + acc + (e.note ? '. ' + esc(e.note) : ''), money(e.amount), 'exp', e.id, true, '', '', badge(c)); };
-const savRow = s => row(esc(savLabel(s)), fdate(s.date) + (s.note ? '. ' + esc(s.note) : ''), money(s.amount), 'sav', s.id, s.amount < 0);
-const loanRow = l => row(esc(l.person), `${fdate(l.date)}${accNote(l.m)}. Prestado ${money(l.amount)}` + (lPaid(l) ? `. Abonado ${money(lPaid(l))}` : '') + (l.note ? '. ' + esc(l.note) : ''), money(l.paid ? getBack(l) : lLeft(l)), 'loan', l.id, false,
+  return row(esc(c.name), rdI('Fecha', fdate(e.date)) + (e.m ? rdI('Cuenta', esc(methodOf(e.m).name)) : '') + rdNote(e.note), money(e.amount), 'exp', e.id, true, '', '', badge(c)); };
+const savRow = s => row(esc(savLabel(s)), rdI('Fecha', fdate(s.date)) + rdNote(s.note), money(s.amount), 'sav', s.id, s.amount < 0);
+const loanRow = l => row(esc(l.person), rdI('Fecha', fdate(l.date)) + (l.m ? rdI('Cuenta', esc(methodOf(l.m).name)) : '') + rdI('Prestado', money(l.amount)) + (lPaid(l) ? rdI('Abonado', money(lPaid(l))) : '') + rdNote(l.note), money(l.paid ? getBack(l) : lLeft(l)), 'loan', l.id, false,
   (l.paid ? '' : `<button class="btn alt sm" data-labono="${l.id}">Abonar</button>`) + `<button class="btn alt sm" data-paid="${l.id}">${l.paid ? 'Reabrir' : 'Cobrado'}</button>`, l.paid ? 'done' : '');
 
 /* Listas separadas por día (Hoy, Ayer, lunes 19 de octubre…), con el total de cada día a la derecha */
@@ -1466,13 +1531,14 @@ function render() {
   renderSug();
 
   /* Historial por período */
-  const from = cutoff(per);
-  const pexp = D.exp.filter(e => !from || e.date >= from);
+  const { from, to } = periodRange(per);
+  $('#per').value = per; $('#per-edit').hidden = per !== 'custom';
+  const pexp = D.exp.filter(e => (!from || e.date >= from) && (!to || e.date <= to));
   $('#hist-sum').textContent = pexp.length
-    ? `${PERIODS[per]}: ${money(sum(pexp))} en ${pexp.length} ${pexp.length === 1 ? 'gasto' : 'gastos'}.`
-    : `${PERIODS[per]}: sin gastos registrados.`;
+    ? `${periodLabel()}: ${money(sum(pexp))} en ${pexp.length} ${pexp.length === 1 ? 'gasto' : 'gastos'}.`
+    : `${periodLabel()}: sin gastos registrados.`;
   $('#l-hist').innerHTML = byDay(sorted(pexp), expRow, g => money(sum(g))) || '<div class="empty">No hay gastos en este período.</div>';
-  $('#t-cat').textContent = 'Gastos por categoría (' + PERIODS[per].toLowerCase() + ')';
+  $('#t-cat').textContent = 'Gastos por categoría (' + periodLabel().toLowerCase() + ')';
 
   /* Resumen mensual */
   fillSummary(monthSummary());

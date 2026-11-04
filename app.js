@@ -165,6 +165,7 @@ function setMode(m) {
 }
 
 function showLock() {
+  if (window.vaultReset) window.vaultReset();                 // cerrar sesión borra de memoria todo lo de Mis cuentas
   $('#app').hidden = true; $('#lock').hidden = false;
   $('#rec').hidden = true; $('#auth-form').hidden = false;
   const local = B.mode === 'local', has = local && B.exists();
@@ -179,6 +180,7 @@ function showLock() {
 }
 
 function enter(email, data) {
+  if (window.vaultReset) window.vaultReset();                 // al entrar (o cambiar de cuenta) la bóveda siempre empieza bloqueada
   D = data;
   $('#who').textContent = email || '';
   $('#lock').hidden = true; $('#app').hidden = false;
@@ -780,9 +782,9 @@ $('#cmodal').addEventListener('click', e => { if (e.target.id === 'cmodal') answ
 const tabbable = x => !x.disabled && x.offsetParent !== null && x.tabIndex >= 0 &&
   (x.type !== 'radio' || x.checked || (!document.querySelector(`input[name="${x.name}"]:checked`) && document.querySelector(`input[name="${x.name}"]`) === x));
 document.addEventListener('keydown', e => {
-  const open = [$('#accmodal'), $('#gmodal'), $('#lomodal'), $('#permodal'), $('#exmodal'), $('#svcmodal'), $('#catmodal'), $('#fmodal'), $('#cmodal')].find(m => !m.hidden);
+  const open = [$('#accmodal'), $('#gmodal'), $('#lomodal'), $('#permodal'), $('#exmodal'), $('#vt-edit'), $('#vt-hist'), $('#vt-view'), $('#svcmodal'), $('#catmodal'), $('#fmodal'), $('#cmodal')].find(m => !m.hidden);
   if (open) {
-    if (e.key === 'Escape') { if (open.id === 'cmodal') answer(false); else if (open.id === 'catmodal') closeCat(); else if (open.id === 'svcmodal') { closeSvc(); $('#svc-btn').focus(); } else if (open.id === 'gmodal') closeG(); else if (open.id === 'lomodal') closeL(); else if (open.id === 'permodal') closePM(true); else if (open.id === 'exmodal') closeExit(); else if (open.id === 'accmodal') closeAcc(); else fAnswer(null); }
+    if (e.key === 'Escape') { if (open.id === 'cmodal') answer(false); else if (open.id === 'catmodal') closeCat(); else if (open.id === 'svcmodal') { closeSvc(); $('#svc-btn').focus(); } else if (open.id === 'gmodal') closeG(); else if (open.id === 'lomodal') closeL(); else if (open.id === 'permodal') closePM(true); else if (open.id === 'exmodal') closeExit(); else if (open.id.startsWith('vt-') && window.vaultEsc) window.vaultEsc(open.id); else if (open.id === 'accmodal') closeAcc(); else fAnswer(null); }
     else if (e.key === 'Tab') {
       const f = [...open.querySelectorAll('input,select,button')].filter(tabbable);
       if (!f.length) return;
@@ -1766,7 +1768,7 @@ makeSortable($('#cdd-list'), 'cid', 'cats');
    y se muestra la ventana; si hay otra ventana abierta, atrás solo la cierra. "Sí, salir" retrocede los dos pasos (guarda + inicio)
    para salir de verdad. (Chrome ignora pasos agregados sin interacción del usuario, por eso se arma con el primer toque.) */
 let guardArmed = false, exiting = false;
-const overlayOpen = () => [...document.querySelectorAll('.modal')].some(m => !m.hidden) || !$('#dd-menu').hidden || !$('#cdd-menu').hidden;
+const overlayOpen = () => [...document.querySelectorAll('.modal')].some(m => !m.hidden) || !$('#dd-menu').hidden || !$('#cdd-menu').hidden || !$('#mode-menu').hidden;
 function armGuard() { if (guardArmed || exiting) return; guardArmed = true; try { history.pushState({ fin: 'guard' }, ''); } catch {} }
 ['pointerdown', 'keydown', 'touchstart'].forEach(ev => document.addEventListener(ev, armGuard, { capture: true, passive: true }));
 window.addEventListener('popstate', () => {

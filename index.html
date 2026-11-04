@@ -64,16 +64,26 @@
 <header>
   <div class="wrap">
     <div class="top">
-      <h1>Mis finanzas</h1>
+      <div class="modewrap">
+        <h1><button type="button" class="mode-btn" id="mode-btn" aria-haspopup="menu" aria-expanded="false" aria-controls="mode-menu"><span id="mode-title">Mis finanzas</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button></h1>
+        <div class="mode-menu" id="mode-menu" role="menu" aria-label="Cambiar de sección" hidden>
+          <button type="button" role="menuitemradio" aria-checked="true" class="on" data-mode="fin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg><span><b>Mis finanzas</b><small>Gastos, ahorros, préstamos y metas</small></span><i class="mm-ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg></i></button>
+          <button type="button" role="menuitemradio" aria-checked="false" data-mode="vault"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.7 12.3L21 2"/><path d="M16 7l3 3"/><path d="M14 9l2 2"/></svg><span><b>Mis cuentas</b><small>Correos, usuarios y contraseñas, cifrados</small></span><i class="mm-ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg></i></button>
+        </div>
+      </div>
       <div class="who"><span id="who"></span><button class="ghost" id="logout">Cerrar sesión</button></div>
     </div>
     <div class="navrow">
-      <nav role="tablist" aria-label="Secciones">
+      <nav id="fin-nav" role="tablist" aria-label="Secciones">
         <button role="tab" data-tab="res" aria-selected="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg><span>Resumen</span></button>
         <button role="tab" data-tab="exp" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg><span>Gastos</span></button>
         <button role="tab" data-tab="sav" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12V8H6a2 2 0 0 1 0-4h12v4"/><path d="M4 6v12a2 2 0 0 0 2 2h14v-4"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/></svg><span>Ahorros</span></button>
         <button role="tab" data-tab="loan" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Préstamos</span></button>
         <button role="tab" data-tab="goal" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22v-7"/></svg><span>Metas</span></button>
+      </nav>
+      <nav id="vnav" role="tablist" aria-label="Mis cuentas" hidden>
+        <button role="tab" data-vtab="vt-list" aria-selected="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.7 12.3L21 2"/><path d="M16 7l3 3"/><path d="M14 9l2 2"/></svg>Cuentas</button>
+        <button role="tab" data-vtab="vt-sec" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><rect x="9" y="11" width="6" height="5" rx="1"/><path d="M10 11V9a2 2 0 0 1 4 0v2"/></svg>Seguridad</button>
       </nav>
       <button class="sumbtn" id="sum-open" type="button">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
@@ -283,6 +293,89 @@
     </div>
     <div class="goal-list" id="l-goal"></div>
   </section>
+
+  <section id="vt-list">
+    <div class="vt-card" id="vt-gate">
+      <div class="vt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><rect x="9" y="11" width="6" height="5" rx="1"/><path d="M10 11V9a2 2 0 0 1 4 0v2"/></svg></div>
+      <h2 id="vg-title">Mis cuentas</h2>
+      <p class="vt-sub" id="vg-sub">Comprobando tu bóveda…</p>
+      <form id="vg-form" novalidate autocomplete="off" hidden>
+        <label id="vg-l-rec" hidden>Clave de recuperación<input id="vg-rec" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXXX-XXXXX-XXXXX-XXXXX"></label>
+        <label id="vg-l-pw"><span id="vg-pw-t">Contraseña maestra</span><span class="pwf"><input id="vg-pw" type="password" autocomplete="off"><button type="button" class="eye" data-eye="vg-pw" aria-label="Mostrar contraseña" aria-pressed="false" title="Mostrar contraseña"><svg class="i-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg><svg class="i-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.9 17.9A10.9 10.9 0 0 1 12 19c-6.4 0-10-7-10-7a18.5 18.5 0 0 1 5.1-5.9M9.9 5.2A9.8 9.8 0 0 1 12 5c6.4 0 10 7 10 7a18.6 18.6 0 0 1-2.2 3.2M14.1 14.1a3 3 0 1 1-4.2-4.2"/><path d="M2 2l20 20"/></svg></button></span></label>
+        <div class="vt-meter" id="vg-meter" data-lv="0" hidden><i></i><i></i><i></i><i></i><span></span></div>
+        <label id="vg-l-pw2" hidden>Repite la contraseña maestra<span class="pwf"><input id="vg-pw2" type="password" autocomplete="off"><button type="button" class="eye" data-eye="vg-pw2" aria-label="Mostrar contraseña" aria-pressed="false" title="Mostrar contraseña"><svg class="i-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg><svg class="i-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.9 17.9A10.9 10.9 0 0 1 12 19c-6.4 0-10-7-10-7a18.5 18.5 0 0 1 5.1-5.9M9.9 5.2A9.8 9.8 0 0 1 12 5c6.4 0 10 7 10 7a18.6 18.6 0 0 1-2.2 3.2M14.1 14.1a3 3 0 1 1-4.2-4.2"/><path d="M2 2l20 20"/></svg></button></span></label>
+        <span class="derr" id="vg-err" role="alert" hidden></span>
+        <button class="btn" id="vg-go" type="submit">Desbloquear</button>
+      </form>
+      <button type="button" class="filt-x" id="vg-alt" hidden>Olvidé mi contraseña maestra</button>
+      <div id="vg-recbox" hidden>
+        <div class="vt-reckey" id="vg-reckey" aria-live="polite"></div>
+        <button type="button" class="btn alt" id="vg-copy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copiar clave</button>
+        <label class="m-skip"><input type="checkbox" id="vg-saved"><span><b>Ya guardé mi clave de recuperación</b></span></label>
+        <button class="btn" id="vg-done" type="button" disabled>Continuar</button>
+      </div>
+    </div>
+    <div id="vt-open" hidden>
+      <div class="vt-bar">
+        <div><h2 class="sec">Mis cuentas</h2><p class="vt-sub" id="vt-count"></p></div>
+        <div class="vt-acts">
+          <button class="btn" id="vt-add" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Agregar cuenta</button>
+          <button class="btn alt" id="vt-lockbtn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Bloquear</button>
+        </div>
+      </div>
+      <div class="filt vt-filt">
+        <input id="vt-q" type="search" autocomplete="off" placeholder="Buscar cuenta o usuario" aria-label="Buscar cuentas">
+        <label class="per"><span class="lb">Categoría</span><select id="vt-cat" aria-label="Filtrar por categoría"></select></label>
+      </div>
+      <div id="vt-items" class="vt-grid"></div>
+      <div class="empty vt-empty" id="vt-empty" hidden></div>
+    </div>
+  </section>
+  <section id="vt-sec">
+    <div class="vt-card" id="sc-locked">
+      <div class="vt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><rect x="9" y="11" width="6" height="5" rx="1"/><path d="M10 11V9a2 2 0 0 1 4 0v2"/></svg></div>
+      <h2>Desbloquea tus cuentas</h2>
+      <p class="vt-sub">Para cambiar la configuración de seguridad primero desbloquea con tu contraseña maestra.</p>
+      <button class="btn" id="sc-go" type="button">Ir a desbloquear</button>
+    </div>
+    <div id="sc-body" hidden>
+      <h2 class="sec">Seguridad</h2>
+      <div class="vt-info">
+        <b>Así se protegen tus datos</b>
+        <ul>
+          <li>Se cifran en tu dispositivo (AES-256) antes de guardarse; solo se guarda texto cifrado.</li>
+          <li>Tu contraseña maestra y tu clave de recuperación no se guardan ni se envían a ningún lado.</li>
+          <li>Se bloquean solas por inactividad o al salir de la app.</li>
+          <li>Nada de esto se publica en GitHub: el repositorio solo tiene el código.</li>
+        </ul>
+      </div>
+      <div class="vt-set">
+        <h3>Bloqueo automático</h3>
+        <label>Bloquear después de<select id="sc-lockmin"><option value="1">1 minuto sin usar</option><option value="5">5 minutos sin usar</option><option value="10">10 minutos sin usar</option><option value="15">15 minutos sin usar</option><option value="30">30 minutos sin usar</option></select></label>
+        <button class="btn alt" id="sc-now" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Bloquear ahora</button>
+      </div>
+      <form class="vt-set" id="sc-form" novalidate autocomplete="off">
+        <h3>Cambiar contraseña maestra</h3>
+        <label>Contraseña maestra actual<span class="pwf"><input id="sc-cur" type="password" autocomplete="off"><button type="button" class="eye" data-eye="sc-cur" aria-label="Mostrar contraseña" aria-pressed="false" title="Mostrar contraseña"><svg class="i-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg><svg class="i-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.9 17.9A10.9 10.9 0 0 1 12 19c-6.4 0-10-7-10-7a18.5 18.5 0 0 1 5.1-5.9M9.9 5.2A9.8 9.8 0 0 1 12 5c6.4 0 10 7 10 7a18.6 18.6 0 0 1-2.2 3.2M14.1 14.1a3 3 0 1 1-4.2-4.2"/><path d="M2 2l20 20"/></svg></button></span></label>
+        <label>Nueva contraseña maestra<span class="pwf"><input id="sc-new" type="password" autocomplete="off"><button type="button" class="eye" data-eye="sc-new" aria-label="Mostrar contraseña" aria-pressed="false" title="Mostrar contraseña"><svg class="i-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg><svg class="i-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.9 17.9A10.9 10.9 0 0 1 12 19c-6.4 0-10-7-10-7a18.5 18.5 0 0 1 5.1-5.9M9.9 5.2A9.8 9.8 0 0 1 12 5c6.4 0 10 7 10 7a18.6 18.6 0 0 1-2.2 3.2M14.1 14.1a3 3 0 1 1-4.2-4.2"/><path d="M2 2l20 20"/></svg></button></span></label>
+        <div class="vt-meter" id="sc-meter" data-lv="0"><i></i><i></i><i></i><i></i><span></span></div>
+        <label>Repite la nueva contraseña<span class="pwf"><input id="sc-new2" type="password" autocomplete="off"><button type="button" class="eye" data-eye="sc-new2" aria-label="Mostrar contraseña" aria-pressed="false" title="Mostrar contraseña"><svg class="i-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg><svg class="i-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.9 17.9A10.9 10.9 0 0 1 12 19c-6.4 0-10-7-10-7a18.5 18.5 0 0 1 5.1-5.9M9.9 5.2A9.8 9.8 0 0 1 12 5c6.4 0 10 7 10 7a18.6 18.6 0 0 1-2.2 3.2M14.1 14.1a3 3 0 1 1-4.2-4.2"/><path d="M2 2l20 20"/></svg></button></span></label>
+        <span class="derr" id="sc-err" role="alert" hidden></span>
+        <button class="btn" id="sc-save" type="submit">Cambiar contraseña maestra</button>
+      </form>
+      <div class="vt-set">
+        <h3>Nueva clave de recuperación</h3>
+        <p class="vt-sub">Genera una nueva y la anterior deja de servir. Se muestra una sola vez.</p>
+        <label>Tu contraseña maestra<span class="pwf"><input id="sc-rec-pw" type="password" autocomplete="off"><button type="button" class="eye" data-eye="sc-rec-pw" aria-label="Mostrar contraseña" aria-pressed="false" title="Mostrar contraseña"><svg class="i-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg><svg class="i-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.9 17.9A10.9 10.9 0 0 1 12 19c-6.4 0-10-7-10-7a18.5 18.5 0 0 1 5.1-5.9M9.9 5.2A9.8 9.8 0 0 1 12 5c6.4 0 10 7 10 7a18.6 18.6 0 0 1-2.2 3.2M14.1 14.1a3 3 0 1 1-4.2-4.2"/><path d="M2 2l20 20"/></svg></button></span></label>
+        <span class="derr" id="sc-rec-err" role="alert" hidden></span>
+        <button class="btn alt" id="sc-rec-go" type="button">Generar nueva clave</button>
+        <div id="sc-reckey" hidden>
+          <div class="vt-reckey" id="sc-reckey-val" aria-live="polite"></div>
+          <div class="vt-reckey-btns"><button type="button" class="btn alt" id="sc-rec-copy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copiar</button><button type="button" class="btn alt" id="sc-rec-hide">Ya la guardé</button></div>
+        </div>
+      </div>
+    </div>
+  </section>
 </main>
 </div>
 
@@ -366,6 +459,67 @@
       <button class="cbtn amber" id="ex-yes" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Sí, salir</button>
       <button class="cbtn blue" id="ex-no" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>No, quedarme</button>
     </div>
+  </div>
+</div>
+
+<div class="modal" id="vt-view" hidden>
+  <div class="dlg accdlg" role="dialog" aria-modal="true" aria-labelledby="vv-title">
+    <div class="vv-head"><span id="vv-badge"></span><div><h2 id="vv-title"></h2><p class="vt-sub" id="vv-meta"></p></div></div>
+    <div class="vv-rows" id="vv-rows"></div>
+    <div class="c-btns">
+      <button class="btn" id="vv-edit" type="button">Editar</button>
+      <button class="btn alt" id="vv-hist" type="button" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/></svg>Ver historial de cambios</button>
+      <button class="btn alt vv-del" id="vv-del" type="button">Eliminar cuenta</button>
+      <button class="btn alt" id="vv-close" type="button">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="vt-edit" hidden>
+  <div class="dlg accdlg" role="dialog" aria-modal="true" aria-labelledby="ve-title">
+    <h2 id="ve-title">Nueva cuenta</h2>
+    <div class="cat-top">
+      <span class="acc-prev" id="ve-prev" aria-hidden="true"></span>
+      <div class="cat-name">
+        <label for="ve-name">Nombre de la cuenta <em class="req" title="Obligatorio">*</em></label>
+        <input id="ve-name" maxlength="40" autocomplete="off" placeholder="Ej. Gmail personal, Banco Agrícola">
+        <span class="derr" id="ve-e-name" role="alert" hidden></span>
+      </div>
+    </div>
+    <div class="ve-fields">
+      <label>Correo utilizado<input id="ve-email" type="email" inputmode="email" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="120"></label>
+      <span class="derr" id="ve-e-mail" role="alert" hidden></span>
+      <label>Nombre de usuario<input id="ve-user" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="80"></label>
+      <span class="derr" id="ve-e-id" role="alert" hidden></span>
+      <p class="ve-hint">Escribe al menos uno: el correo o el nombre de usuario.</p>
+      <label>Contraseña <em class="req" title="Obligatorio">*</em><span class="pwf"><input id="ve-pass" type="password" autocomplete="new-password" spellcheck="false" maxlength="200"><button type="button" class="eye" data-eye="ve-pass" aria-label="Mostrar contraseña" aria-pressed="false" title="Mostrar contraseña"><svg class="i-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg><svg class="i-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.9 17.9A10.9 10.9 0 0 1 12 19c-6.4 0-10-7-10-7a18.5 18.5 0 0 1 5.1-5.9M9.9 5.2A9.8 9.8 0 0 1 12 5c6.4 0 10 7 10 7a18.6 18.6 0 0 1-2.2 3.2M14.1 14.1a3 3 0 1 1-4.2-4.2"/><path d="M2 2l20 20"/></svg></button></span></label>
+      <span class="derr" id="ve-e-pass" role="alert" hidden></span>
+      <button type="button" class="filt-x ve-gen" id="ve-gen">Generar una contraseña segura</button>
+    </div>
+    <div class="cat-sec">
+      <div class="ve-lblrow"><span class="lbl" id="ve-color-lbl">Color</span><button type="button" class="filt-x" id="ve-color-reset">Predeterminado</button></div>
+      <div class="swatches" id="ve-swatches" role="radiogroup" aria-labelledby="ve-color-lbl"></div>
+    </div>
+    <div class="cat-sec">
+      <span class="lbl" id="ve-icon-lbl">Logo o ícono</span>
+      <input id="ve-search" type="search" autocomplete="off" placeholder="Buscar banco, red social, app…" aria-label="Buscar logo o ícono">
+      <div class="ic-grid acc-grid" id="ve-icons" role="radiogroup" aria-labelledby="ve-icon-lbl"></div>
+      <p class="acc-empty" id="ve-empty" hidden>No hay resultados. Prueba con otro nombre o elige «Solo la inicial».</p>
+      <p class="svc-note">Los logos se cargan desde internet; si no hay conexión verás la inicial.</p>
+    </div>
+    <div class="c-btns">
+      <button class="btn" id="ve-save" type="button">Guardar cuenta</button>
+      <button class="btn alt" id="ve-cancel" type="button">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="vt-hist" hidden>
+  <div class="dlg accdlg" role="dialog" aria-modal="true" aria-labelledby="hist-title">
+    <h2 id="hist-title">Historial de cambios</h2>
+    <p class="vt-sub">Cada vez que editas una cuenta se guarda la fecha y qué dato cambió.</p>
+    <div class="hs-list" id="hist-list"></div>
+    <div class="c-btns"><button class="btn alt" id="hist-close" type="button">Cerrar</button></div>
   </div>
 </div>
 
@@ -490,6 +644,8 @@
 <script src="config.js"></script>
 <script src="store.js"></script>
 <script src="icons.js"></script>
+<script src="brands.js"></script>
 <script src="app.js"></script>
+<script src="vault.js"></script>
 </body>
 </html>

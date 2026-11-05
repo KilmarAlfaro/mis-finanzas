@@ -1118,3 +1118,25 @@ li.done .rd-i span,li.done .rd-note p{text-decoration:none}
 
 .vt-acts .btn{white-space:nowrap;min-height:3rem;padding-left:1rem;padding-right:1rem}
 .vt-acts .btn svg{margin:0}
+
+/* --- Verificación en dos pasos --- */
+.tf-state{display:inline-block;margin-left:.5rem;padding:.15rem .6rem;border-radius:99px;font-size:.75rem;font-weight:800;vertical-align:middle;background:#EEF3F1;color:var(--mute)}
+.tf-state[data-on="1"]{background:var(--acc2);color:var(--acc)}
+.tf-steps{margin:0 0 .6rem;padding-left:1.2rem;display:grid;gap:.4rem;color:var(--ink);font-size:.93rem;line-height:1.4}
+#tf-key{font-size:1.05rem}
+.tf-grid{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
+.tf-grid span{padding:.6rem .5rem;border:1px solid #D3E4DD;border-radius:10px;background:#F4F8F6;font:800 1rem ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.06em;text-align:center;user-select:all}
+#tf-setup,#tf-codes,#tf-on,#tf-off{display:grid;gap:.8rem}
+#tf-setup[hidden],#tf-codes[hidden],#tf-on[hidden],#tf-off[hidden]{display:none}
+.vt-set a.btn{display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
+#vg-l-otp input{letter-spacing:.3em;font-size:1.25rem;text-align:center}
+#vg-l-otp .ve-hint{margin:.1rem 0 0;font-weight:500}
+/* Las listas de Seguridad no deben heredar el diseño de filas de las listas de movimientos */
+.vt-info li,.tf-steps li{all:revert;display:list-item;line-height:1.4}
+.vt-info ul,.tf-steps{margin:.5rem 0 0;padding-left:1.2rem}
+.tf-steps{margin:0 0 .4rem;list-style:decimal}
+.tf-steps li b,.vt-info li b{display:inline;overflow:visible;font-size:inherit;-webkit-line-clamp:unset;line-clamp:unset}
+.vt-reckey-btns{align-items:stretch}
+.vt-reckey-btns .btn{align-self:stretch;display:flex;align-items:center;justify-content:center;text-align:center;min-height:3rem}
+.vt-info ul{all:revert;display:block;margin:.5rem 0 0;padding-left:1.2rem;color:var(--ink);font-size:.93rem;line-height:1.4}
+.vt-info ul li{all:revert;display:list-item;margin:.25rem 0}

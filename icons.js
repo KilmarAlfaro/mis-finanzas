@@ -256,7 +256,9 @@ const BANK_GROUPS = [
   { name: 'Billeteras digitales', items: [
     ['b_chivo', 'Chivo Wallet', 'Chivo', '#00A862', '#FFFFFF', null, 'chivowallet.com'],
     ['b_tigomoney', 'Tigo Money', 'TM', '#00377B', '#FFD100', null, 'tigo.com.sv'],
-    ['b_paypal', 'PayPal', 'PP', '#003087', '#FFFFFF', null, 'paypal.com']
+    ['b_paypal', 'PayPal', 'PP', '#003087', '#FFFFFF', null, 'paypal.com'],
+    ['b_airtm', 'Airtm', 'At', '#2D2DE0', '#FFFFFF', null, 'airtm.com'],
+    ['b_hapi', 'Hapi', 'Hp', '#0E7C66', '#FFFFFF', null, 'hapi.com']
   ] }
 ];
 BANK_GROUPS.forEach(g => g.items.forEach(([id, name, mark, bg, fg, ico, dom]) => { SERVICES[id] = { id, name, mark, bg, fg, ico, dom }; }));

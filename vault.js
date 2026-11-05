@@ -36,6 +36,27 @@
   const newRecovery = () => [...rnd(20)].map(x => REC_ALPHA[x & 31]).join('').match(/.{5}/g).join('-');
   const normRec = s => String(s || '').toUpperCase().replace(/[^A-Z2-9]/g, '');
 
+  /* ---------- Verificación en dos pasos (TOTP, compatible con Google Authenticator, Microsoft Authenticator, Authy…) ----------
+     RFC 6238: HMAC-SHA1, 6 dígitos, cambia cada 30 s. El secreto se guarda DENTRO del bloque cifrado (data.sec.totp). */
+  const B32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+  const b32enc = bytes => { let bits = '', out = ''; bytes.forEach(b => { bits += b.toString(2).padStart(8, '0'); }); for (let i = 0; i < bits.length; i += 5) out += B32[parseInt(bits.slice(i, i + 5).padEnd(5, '0'), 2)]; return out; };
+  const b32dec = str => { let bits = ''; for (const c of str.replace(/=+$/, '')) bits += B32.indexOf(c).toString(2).padStart(5, '0'); const out = []; for (let i = 0; i + 8 <= bits.length; i += 8) out.push(parseInt(bits.slice(i, i + 8), 2)); return new Uint8Array(out); };
+  async function hotp(secret, counter) {
+    const k = await crypto.subtle.importKey('raw', secret, { name: 'HMAC', hash: 'SHA-1' }, false, ['sign']);
+    const buf = new ArrayBuffer(8); new DataView(buf).setUint32(4, counter >>> 0); new DataView(buf).setUint32(0, Math.floor(counter / 4294967296));
+    const mac = new Uint8Array(await crypto.subtle.sign('HMAC', k, buf)), o = mac[19] & 15;
+    const n = ((mac[o] & 0x7f) << 24) | (mac[o + 1] << 16) | (mac[o + 2] << 8) | mac[o + 3];
+    return String(n % 1000000).padStart(6, '0');
+  }
+  /* Devuelve el "paso" de 30 s en que el código es válido (acepta ±1 paso por diferencias de reloj) o 0 si no lo es. Un paso ya usado no se acepta de nuevo. */
+  async function totpCheck(secretB32, code, lastStep) {
+    const sec = b32dec(secretB32), now = Math.floor(Date.now() / 30000);
+    for (const d of [0, -1, 1]) { const st = now + d; if (st > (lastStep || 0) && await hotp(sec, st) === code) return st; }
+    return 0;
+  }
+  const newBackupCodes = () => Array.from({ length: 8 }, () => { const b = rnd(5); return [...b].map(x => String(x % 100).padStart(2, '0')).join(''); });
+  const showBackup = c => c.slice(0, 5) + '-' + c.slice(5);
+
   /* ---------- Almacenamiento (solo guarda el documento ya cifrado) ---------- */
   const VS = {
     lkey: () => 'fin-vault:' + (B.email() || ''),
@@ -64,7 +85,8 @@
   };
 
   /* ---------- Estado ---------- */
-  let V = null;                       // { key, doc, rev, items } solo mientras está desbloqueada
+  let V = null;                       // { key, doc, rev, items, sec } solo mientras está desbloqueada
+  let PEND = null;                    // contraseña maestra correcta, pendiente del código de 2 pasos
   let appMode = 'fin', lastFin = 'res', gate = 'loading', fails = 0, waitUntil = 0;
   let idleT = null, hiddenAt = 0, clipT = null, E = null, viewId = '', pickerBuilt = false;
   const FIELDS = [['name', 'Nombre de la cuenta'], ['email', 'Correo'], ['user', 'Nombre de usuario'], ['pass', 'Contraseña']];
@@ -130,17 +152,18 @@
     ['vt-items', 'vv-rows', 'hist-list'].forEach(id => { $('#' + id).innerHTML = ''; });
     ['ve-name', 've-email', 've-user', 've-pass', 'vt-q', 'sc-cur', 'sc-new', 'sc-new2', 'sc-rec-pw'].forEach(id => { const el = $('#' + id); if (el) el.value = ''; });
     $('#sc-reckey').hidden = true; $('#sc-reckey-val').textContent = '';
+    tfStage = 'idle'; tfSecret = ''; ['tf-key', 'tf-codes-list'].forEach(id => { $('#' + id).textContent = ''; }); ['tf-code', 'tf-pw', 'tf-dis-code', 'vg-otp'].forEach(id => { $('#' + id).value = ''; });
     resetEyes();
   }
   function lock(msg) {
     clearTimeout(idleT); clearTimeout(clipT);
-    const was = !!V; V = null;
+    const was = !!V; V = null; PEND = null;
     closeAllModals(); clearScreen();
     if (appMode === 'vault') { renderGate('unlock'); renderSec(); }
     if (was && msg) toast(msg, 'warn');
   }
   function reset() {                                         // al cerrar sesión o entrar con otra cuenta
-    clearTimeout(idleT); clearTimeout(clipT); V = null; gate = 'loading';
+    clearTimeout(idleT); clearTimeout(clipT); V = null; PEND = null; gate = 'loading';
     closeAllModals(); clearScreen();
     appMode = 'fin'; $('#mode-title').textContent = 'Mis finanzas'; document.title = 'Mis finanzas';
     $('#fin-nav').hidden = false; $('#vnav').hidden = true; $('#sum-open').hidden = false; setMenu(false);
@@ -170,24 +193,25 @@
     const T = {
       loading: ['Mis cuentas', 'Comprobando tu bóveda…'],
       error: ['Mis cuentas', ''],
+      otp: ['Verificación en dos pasos', 'Abre tu app de autenticación y escribe el código de 6 dígitos de «Mis cuentas». Si perdiste tu teléfono, usa un código de respaldo.'],
       setup: ['Protege tus cuentas', 'Crea una contraseña maestra. Tus datos se cifran en tu dispositivo antes de guardarse: nadie más puede leerlos, ni siquiera quien administra la base de datos.'],
       unlock: ['Desbloquea tus cuentas', 'Escribe tu contraseña maestra para ver tus datos.'],
       forgot: ['Recuperar acceso', 'Escribe tu clave de recuperación y elige una nueva contraseña maestra.'],
       rec: ['Guarda tu clave de recuperación', 'Es la única forma de volver a entrar si olvidas la contraseña maestra. Guárdala en un lugar seguro y fuera de este dispositivo. No se puede volver a ver.']
     }[state];
     $('#vg-title').textContent = T[0]; $('#vg-sub').textContent = T[1];
-    const form = state === 'setup' || state === 'unlock' || state === 'forgot';
+    const form = ['setup', 'unlock', 'forgot', 'otp'].includes(state);
     $('#vg-form').hidden = !form; $('#vg-recbox').hidden = state !== 'rec';
-    $('#vg-l-rec').hidden = state !== 'forgot';
-    $('#vg-l-pw2').hidden = state === 'unlock'; $('#vg-meter').hidden = state === 'unlock';
+    $('#vg-l-rec').hidden = state !== 'forgot'; $('#vg-l-otp').hidden = state !== 'otp'; $('#vg-l-pw').hidden = state === 'otp';
+    $('#vg-l-pw2').hidden = state === 'unlock' || state === 'otp'; $('#vg-meter').hidden = state === 'unlock' || state === 'otp';
     $('#vg-pw-t').textContent = state === 'forgot' ? 'Nueva contraseña maestra' : 'Contraseña maestra';
-    $('#vg-go').textContent = { setup: 'Crear bóveda', unlock: 'Desbloquear', forgot: 'Recuperar acceso' }[state] || '';
-    $('#vg-alt').hidden = !['unlock', 'forgot', 'error'].includes(state);
-    $('#vg-alt').textContent = state === 'forgot' ? 'Volver' : state === 'error' ? 'Reintentar' : 'Olvidé mi contraseña maestra';
-    ['vg-rec', 'vg-pw', 'vg-pw2'].forEach(id => { $('#' + id).value = ''; }); paintMeter('');
+    $('#vg-go').textContent = { setup: 'Crear bóveda', unlock: 'Desbloquear', forgot: 'Recuperar acceso', otp: 'Verificar' }[state] || '';
+    $('#vg-alt').hidden = !['unlock', 'forgot', 'error', 'otp'].includes(state);
+    $('#vg-alt').textContent = state === 'forgot' ? 'Volver' : state === 'error' ? 'Reintentar' : state === 'otp' ? 'Cancelar' : 'Olvidé mi contraseña maestra';
+    ['vg-rec', 'vg-pw', 'vg-pw2', 'vg-otp'].forEach(id => { $('#' + id).value = ''; }); paintMeter('');
     resetEyes(); showErr('vg-err', ''); $('#vg-go').disabled = false; delete $('#vg-go').dataset.t;
     $('#vt-gate').hidden = false; $('#vt-open').hidden = true;
-    if (form) setTimeout(() => $(state === 'forgot' ? '#vg-rec' : '#vg-pw').focus({ preventScroll: true }), 50);
+    if (form) setTimeout(() => $(state === 'forgot' ? '#vg-rec' : state === 'otp' ? '#vg-otp' : '#vg-pw').focus({ preventScroll: true }), 50);
   }
   async function enterVault() {
     if (V) { renderOpen(); return; }
@@ -201,12 +225,15 @@
     else { if (b.dataset.t) { b.textContent = b.dataset.t; delete b.dataset.t; } b.disabled = false; }
   };
 
-  async function loadItems(key, doc) { const data = JSON.parse(dec.decode(await unseal(key, doc.data))); return Array.isArray(data.items) ? data.items : []; }
+  async function loadData(key, doc) {
+    const d = JSON.parse(dec.decode(await unseal(key, doc.data)));
+    return { items: Array.isArray(d.items) ? d.items : [], sec: d.sec && typeof d.sec === 'object' ? d.sec : {} };
+  }
   async function persistItems() {
-    const doc = { ...V.doc, data: await seal(V.key, enc.encode(JSON.stringify({ items: V.items }))) };
+    const doc = { ...V.doc, data: await seal(V.key, enc.encode(JSON.stringify({ items: V.items, sec: V.sec || {} }))) };
     try { const out = await VS.save(doc, V.rev); V.doc = out; V.rev = out.rev; }
     catch (e) {
-      if (e.conflict) { try { const cur = await VS.load(); V.items = await loadItems(V.key, cur); V.doc = cur; V.rev = cur.rev || 0; renderOpen(); } catch {} }
+      if (e.conflict) { try { const cur = await VS.load(), d = await loadData(V.key, cur); V.items = d.items; V.sec = d.sec; V.doc = cur; V.rev = cur.rev || 0; renderOpen(); } catch {} }
       throw e;
     }
   }
@@ -215,8 +242,27 @@
     e.preventDefault();
     showErr('vg-err', '');
     const pw = $('#vg-pw').value, pw2 = $('#vg-pw2').value, rec = $('#vg-rec').value;
-    if (gate !== 'unlock' && gate !== 'forgot' && gate !== 'setup') return;
+    if (!['unlock', 'forgot', 'setup', 'otp'].includes(gate)) return;
     if (Date.now() < waitUntil) return showErr('vg-err', `Demasiados intentos. Espera ${Math.ceil((waitUntil - Date.now()) / 1000)} s.`);
+    if (gate === 'otp') {
+      const code = $('#vg-otp').value.replace(/[\s-]/g, '');
+      if (!PEND) return renderGate('unlock');
+      if (!code) return showErr('vg-err', 'Escribe el código de 6 dígitos.');
+      busy(true, 'Verificando…');
+      const t = PEND.data.sec.totp; let step = 0, backup = false;
+      if (/^\d{6}$/.test(code)) step = await totpCheck(t.secret, code, t.last || 0);
+      else if (/^\d{10}$/.test(code)) { const i = (t.backup || []).indexOf(code); if (i >= 0) { t.backup.splice(i, 1); backup = true; } }
+      if (!step && !backup) {
+        fails++; if (fails >= 3) waitUntil = Date.now() + Math.min(60, 5 * 2 ** (fails - 3)) * 1000;
+        busy(false); return showErr('vg-err', 'El código no es correcto o ya se usó. Revisa que la hora de tu teléfono esté en automático.');
+      }
+      if (step) t.last = step;
+      V = { key: PEND.key, doc: PEND.doc, rev: PEND.doc.rev || 0, items: PEND.data.items, sec: PEND.data.sec }; PEND = null;
+      fails = 0; waitUntil = 0; bump(); renderOpen();
+      try { await persistItems(); } catch {}                         // guarda el último código usado (no se puede repetir) o el respaldo gastado
+      if (backup) toast(`Usaste un código de respaldo. Te quedan ${V.sec.totp.backup.length}.`, 'warn');
+      return;
+    }
     if (gate === 'unlock') {
       if (!pw) return showErr('vg-err', 'Escribe tu contraseña maestra.');
       busy(true, 'Verificando…');
@@ -226,7 +272,9 @@
         try { raw = await unseal(await kdf(pw, fromB64(doc.pw.s), doc.iter), doc.pw); }
         catch { fails++; if (fails >= 3) waitUntil = Date.now() + Math.min(60, 5 * 2 ** (fails - 3)) * 1000; busy(false); return showErr('vg-err', 'La contraseña maestra no es correcta.'); }
         const key = await importDek(raw); raw.fill(0);
-        V = { key, doc, rev: doc.rev || 0, items: await loadItems(key, doc) };
+        const data = await loadData(key, doc), tf = data.sec.totp;
+        if (tf && tf.enabled) { PEND = { key, doc, data }; renderGate('otp'); return; }          // falta el código de la app de autenticación
+        V = { key, doc, rev: doc.rev || 0, items: data.items, sec: data.sec };
         fails = 0; waitUntil = 0; bump(); renderOpen();
       } catch (er) { busy(false); showErr('vg-err', friendly(er)); }
       return;
@@ -239,9 +287,9 @@
         const dek = rnd(32), recKey = newRecovery(), sP = rnd(16), sR = rnd(16);
         const [kP, kR] = await Promise.all([kdf(pw, sP), kdf(normRec(recKey), sR)]);
         const key = await importDek(dek);
-        const doc = { v: 1, iter: ITER, pw: { s: toB64(sP), ...(await seal(kP, dek)) }, rk: { s: toB64(sR), ...(await seal(kR, dek)) }, data: await seal(key, enc.encode(JSON.stringify({ items: [] }))) };
+        const doc = { v: 1, iter: ITER, pw: { s: toB64(sP), ...(await seal(kP, dek)) }, rk: { s: toB64(sR), ...(await seal(kR, dek)) }, data: await seal(key, enc.encode(JSON.stringify({ items: [], sec: {} }))) };
         const out = await VS.save(doc, 0); dek.fill(0);
-        V = { key, doc: out, rev: out.rev, items: [] };
+        V = { key, doc: out, rev: out.rev, items: [], sec: {} };
         $('#vg-reckey').textContent = recKey; $('#vg-saved').checked = false; $('#vg-done').disabled = true;
         renderGate('rec');
       } catch (er) {
@@ -261,13 +309,15 @@
         catch { fails++; if (fails >= 3) waitUntil = Date.now() + Math.min(60, 5 * 2 ** (fails - 3)) * 1000; busy(false); return showErr('vg-err', 'La clave de recuperación no es correcta.'); }
         const sP = rnd(16), nd = { ...doc, pw: { s: toB64(sP), ...(await seal(await kdf(pw, sP, doc.iter), raw)) } };
         const out = await VS.save(nd, doc.rev || 0), key = await importDek(raw); raw.fill(0);
-        V = { key, doc: out, rev: out.rev, items: await loadItems(key, out) };
-        fails = 0; waitUntil = 0; bump(); renderOpen(); toast('Contraseña maestra actualizada');
+        const data = await loadData(key, out), had = !!(data.sec.totp && data.sec.totp.enabled);
+        V = { key, doc: out, rev: out.rev, items: data.items, sec: data.sec };
+        if (had) { V.sec.totp = null; try { await persistItems(); } catch {} }
+        fails = 0; waitUntil = 0; bump(); renderOpen(); toast(had ? 'Contraseña maestra actualizada. La verificación en dos pasos se desactivó: vuelve a activarla en Seguridad.' : 'Contraseña maestra actualizada');
       } catch (er) { busy(false); showErr('vg-err', friendly(er)); }
     }
   });
   $('#vg-pw').addEventListener('input', e => { if (gate !== 'unlock') paintMeter(e.target.value); });
-  $('#vg-alt').onclick = () => { if (gate === 'error') enterVault(); else renderGate(gate === 'forgot' ? 'unlock' : 'forgot'); };
+  $('#vg-alt').onclick = () => { if (gate === 'error') enterVault(); else if (gate === 'otp') { PEND = null; renderGate('unlock'); } else renderGate(gate === 'forgot' ? 'unlock' : 'forgot'); };
   $('#vg-saved').addEventListener('change', e => { $('#vg-done').disabled = !e.target.checked; });
   $('#vg-done').onclick = () => { $('#vg-reckey').textContent = ''; bump(); renderOpen(); toast('Bóveda creada correctamente'); };
   $('#vg-copy').onclick = () => copyText($('#vg-reckey').textContent, 'Clave de recuperación');
@@ -474,7 +524,71 @@
     const unlocked = !!V;
     $('#sc-locked').hidden = unlocked; $('#sc-body').hidden = !unlocked;
     $('#sc-lockmin').value = String(lockMin());
+    renderTF();
   }
+
+  /* ---------- Seguridad: verificación en dos pasos ---------- */
+  let tfStage = 'idle', tfSecret = '';                        // idle | setup | codes
+  const tfOn = () => !!(V && V.sec && V.sec.totp && V.sec.totp.enabled);
+  function renderTF() {
+    const on = tfOn(), st = V ? tfStage : 'idle';
+    $('#tf-off').hidden = !(!on && st === 'idle'); $('#tf-setup').hidden = st !== 'setup';
+    $('#tf-codes').hidden = st !== 'codes'; $('#tf-on').hidden = !(on && st === 'idle');
+    $('#tf-state').textContent = on ? 'Activada' : 'Desactivada'; $('#tf-state').dataset.on = on ? '1' : '0';
+    if (on) { const n = V.sec.totp.backup.length; $('#tf-left').textContent = n ? `Te quedan ${n} ${n === 1 ? 'código de respaldo' : 'códigos de respaldo'}.` : 'Ya no te quedan códigos de respaldo: genera nuevos.'; }
+  }
+  function showBackupCodes(codes) {
+    $('#tf-codes-list').innerHTML = codes.map(c => `<span>${showBackup(c)}</span>`).join('');
+    $('#tf-codes-saved').checked = false; $('#tf-codes-done').disabled = true; tfStage = 'codes'; renderTF();
+  }
+  $('#tf-start').onclick = () => {
+    tfSecret = b32enc(rnd(20));
+    $('#tf-key').textContent = tfSecret.match(/.{4}/g).join(' ');
+    const who = encodeURIComponent((B.email && B.email()) || 'mis-cuentas');
+    $('#tf-open').href = `otpauth://totp/Mis%20cuentas:${who}?secret=${tfSecret}&issuer=Mis%20cuentas&algorithm=SHA1&digits=6&period=30`;
+    $('#tf-code').value = ''; showErr('tf-err', ''); tfStage = 'setup'; renderTF();
+  };
+  $('#tf-copy').onclick = () => copyText(tfSecret, 'Clave');
+  $('#tf-cancel').onclick = () => { tfSecret = ''; $('#tf-key').textContent = ''; $('#tf-code').value = ''; tfStage = 'idle'; renderTF(); };
+  $('#tf-verify').onclick = async () => {
+    showErr('tf-err', ''); const code = $('#tf-code').value.replace(/\s/g, '');
+    if (!/^\d{6}$/.test(code)) return showErr('tf-err', 'Escribe los 6 dígitos que muestra tu app de autenticación.');
+    const step = await totpCheck(tfSecret, code, 0);
+    if (!step) return showErr('tf-err', 'El código no coincide. Revisa que la clave esté bien escrita y que la hora de tu teléfono esté en automático.');
+    const b = $('#tf-verify'); b.disabled = true;
+    const codes = newBackupCodes(); V.sec = V.sec || {};
+    V.sec.totp = { enabled: true, secret: tfSecret, backup: codes, last: step, since: new Date().toISOString() };
+    try { await persistItems(); }
+    catch (er) { V.sec.totp = null; b.disabled = false; return showErr('tf-err', friendly(er)); }
+    b.disabled = false; tfSecret = ''; $('#tf-key').textContent = ''; $('#tf-code').value = '';
+    showBackupCodes(codes); toast('Verificación en dos pasos activada');
+  };
+  $('#tf-codes-saved').addEventListener('change', e => { $('#tf-codes-done').disabled = !e.target.checked; });
+  $('#tf-codes-copy').onclick = () => copyText([...$('#tf-codes-list').children].map(x => x.textContent).join('\n'), 'Códigos de respaldo');
+  $('#tf-codes-done').onclick = () => { $('#tf-codes-list').textContent = ''; tfStage = 'idle'; renderTF(); };
+  async function tfCodeOk(raw) {                                  // acepta código de la app o uno de respaldo
+    const t = V.sec.totp, code = raw.replace(/[\s-]/g, '');
+    if (/^\d{6}$/.test(code)) { const st = await totpCheck(t.secret, code, t.last || 0); if (st) { t.last = st; return true; } return false; }
+    if (/^\d{10}$/.test(code)) { const i = t.backup.indexOf(code); if (i >= 0) { t.backup.splice(i, 1); return true; } }
+    return false;
+  }
+  $('#tf-regen').onclick = async () => {
+    showErr('tf-on-err', ''); const pw = $('#tf-pw').value;
+    if (!pw) return showErr('tf-on-err', 'Escribe tu contraseña maestra para continuar.');
+    const v = await verifyMaster(pw); if (!v) return showErr('tf-on-err', 'La contraseña maestra no es correcta.'); v.raw.fill(0);
+    const prev = V.sec.totp.backup, codes = newBackupCodes(); V.sec.totp.backup = codes;
+    try { await persistItems(); } catch (er) { V.sec.totp.backup = prev; return showErr('tf-on-err', friendly(er)); }
+    $('#tf-pw').value = ''; resetEyes(); showBackupCodes(codes); toast('Códigos de respaldo nuevos generados');
+  };
+  $('#tf-disable').onclick = async () => {
+    showErr('tf-on-err', ''); const pw = $('#tf-pw').value, code = $('#tf-dis-code').value;
+    if (!pw || !code) return showErr('tf-on-err', 'Escribe tu contraseña maestra y un código de tu app de autenticación.');
+    const v = await verifyMaster(pw); if (!v) return showErr('tf-on-err', 'La contraseña maestra no es correcta.'); v.raw.fill(0);
+    if (!(await tfCodeOk(code))) return showErr('tf-on-err', 'El código no es correcto o ya se usó.');
+    const prev = V.sec.totp; V.sec.totp = null;
+    try { await persistItems(); } catch (er) { V.sec.totp = prev; return showErr('tf-on-err', friendly(er)); }
+    ['tf-pw', 'tf-dis-code'].forEach(id => { $('#' + id).value = ''; }); resetEyes(); renderTF(); toast('Verificación en dos pasos desactivada');
+  };
   $('#sc-lockmin').addEventListener('change', e => { localStorage.setItem('vt-lock-min', e.target.value); bump(); toast('Bloqueo automático actualizado'); });
   $('#sc-now').onclick = () => { lock('Tus cuentas están bloqueadas'); selectVTab('vt-list'); };
   $('#sc-go').onclick = () => selectVTab('vt-list');

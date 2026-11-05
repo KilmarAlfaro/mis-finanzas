@@ -1184,7 +1184,9 @@ let selSvc = '', lastAuto = '';
 const svcOf = id => SERVICES[id] || SERVICES.custom;
 /* Ícono real de cada app: se descarga de internet a partir de su dominio. Orden de intento: Google, DuckDuckGo.
    Si ninguno sirve (sin conexión, dominio sin ícono o ícono diminuto) queda la insignia con la inicial y el color de la marca. */
-const iconSrcs = d => [`https://www.google.com/s2/favicons?domain=${d}&sz=128`, `https://icons.duckduckgo.com/ip3/${d}.ico`];
+/* Fuentes, de la más fiable a la menos: (1) favicon de Google SIN "fallback" (si no hay ícono responde 404 y se pasa a la siguiente, en vez de mostrar el globo genérico),
+   (2) DuckDuckGo, (3) Google clásico. Además se detecta el ícono genérico de cada fuente (ver probePlaceholders). */
+const iconSrcs = d => [`https://t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&url=https://${d}&size=128`, `https://icons.duckduckgo.com/ip3/${d}.ico`, `https://www.google.com/s2/favicons?domain=${d}&sz=128`];
 const iconIdx = {}, iconBad = new Set();      // fuente que ya funcionó por dominio / dominios sin ícono
 const imgFor = dom => {
   if (!dom || iconBad.has(dom)) return '';
@@ -1201,10 +1203,24 @@ function nextIcon(img) {
   if (src) { img.dataset.i = i; img.src = src; } else { iconBad.add(dom); img.remove(); }
 }
 document.addEventListener('error', e => { const t = e.target; if (t.tagName === 'IMG' && t.dataset && t.dataset.dom) nextIcon(t); }, true);
+/* Cada fuente puede devolver un ícono "genérico" (globo, flecha…) cuando no conoce el sitio. Para reconocerlo se pide el ícono de un dominio
+   que NO existe: si la fuente responde con 404 es "limpia"; si responde con imagen, se guardan sus medidas y toda imagen de esa fuente
+   con exactamente esas medidas se descarta (se prueba la siguiente fuente o queda la inicial). */
+const iconPH = {};                                          // índice de fuente -> {w,h} del ícono genérico (null = fuente limpia)
+function probePlaceholders() {
+  iconSrcs('zz-sin-icono-0.invalid').forEach((src, i) => {
+    const im = new Image(); im.referrerPolicy = 'no-referrer';
+    im.onload = () => { iconPH[i] = { w: im.naturalWidth, h: im.naturalHeight }; };
+    im.onerror = () => { iconPH[i] = null; };
+    im.src = src;
+  });
+}
+probePlaceholders();
 document.addEventListener('load', e => {
   const t = e.target;
   if (t.tagName !== 'IMG' || !t.dataset || !t.dataset.dom) return;
-  const last = !iconSrcs(t.dataset.dom)[+t.dataset.i + 1];
+  const last = !iconSrcs(t.dataset.dom)[+t.dataset.i + 1], ph = iconPH[+t.dataset.i];
+  if (ph && t.naturalWidth === ph.w && t.naturalHeight === ph.h) return nextIcon(t);   // es el ícono genérico de esa fuente
   if (t.naturalWidth && t.naturalWidth < 24 && !last) return nextIcon(t);     // ícono diminuto: se prueba la siguiente fuente
   iconIdx[t.dataset.dom] = +t.dataset.i; t.classList.add('ok');
 }, true);

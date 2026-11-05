@@ -302,6 +302,7 @@
       <form id="vg-form" novalidate autocomplete="off" hidden>
         <label id="vg-l-rec" hidden>Clave de recuperación<input id="vg-rec" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXXX-XXXXX-XXXXX-XXXXX"></label>
         <label id="vg-l-pw"><span id="vg-pw-t">Contraseña maestra</span><span class="pwf"><input id="vg-pw" type="password" autocomplete="off"><button type="button" class="eye" data-eye="vg-pw" aria-label="Mostrar contraseña" aria-pressed="false" title="Mostrar contraseña"><svg class="i-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg><svg class="i-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.9 17.9A10.9 10.9 0 0 1 12 19c-6.4 0-10-7-10-7a18.5 18.5 0 0 1 5.1-5.9M9.9 5.2A9.8 9.8 0 0 1 12 5c6.4 0 10 7 10 7a18.6 18.6 0 0 1-2.2 3.2M14.1 14.1a3 3 0 1 1-4.2-4.2"/><path d="M2 2l20 20"/></svg></button></span></label>
+        <label id="vg-l-otp" hidden>Código de verificación<input id="vg-otp" inputmode="numeric" autocomplete="one-time-code" spellcheck="false" maxlength="12" placeholder="000000"><small class="ve-hint">También sirve un código de respaldo de 10 dígitos.</small></label>
         <div class="vt-meter" id="vg-meter" data-lv="0" hidden><i></i><i></i><i></i><i></i><span></span></div>
         <label id="vg-l-pw2" hidden>Repite la contraseña maestra<span class="pwf"><input id="vg-pw2" type="password" autocomplete="off"><button type="button" class="eye" data-eye="vg-pw2" aria-label="Mostrar contraseña" aria-pressed="false" title="Mostrar contraseña"><svg class="i-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg><svg class="i-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.9 17.9A10.9 10.9 0 0 1 12 19c-6.4 0-10-7-10-7a18.5 18.5 0 0 1 5.1-5.9M9.9 5.2A9.8 9.8 0 0 1 12 5c6.4 0 10 7 10 7a18.6 18.6 0 0 1-2.2 3.2M14.1 14.1a3 3 0 1 1-4.2-4.2"/><path d="M2 2l20 20"/></svg></button></span></label>
         <span class="derr" id="vg-err" role="alert" hidden></span>
@@ -353,6 +354,38 @@
         <h3>Bloqueo automático</h3>
         <label>Bloquear después de<select id="sc-lockmin"><option value="1">1 minuto sin usar</option><option value="5">5 minutos sin usar</option><option value="10">10 minutos sin usar</option><option value="15">15 minutos sin usar</option><option value="30">30 minutos sin usar</option></select></label>
         <button class="btn alt" id="sc-now" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Bloquear ahora</button>
+      </div>
+      <div class="vt-set" id="tf-card">
+        <h3>Verificación en dos pasos <span class="tf-state" id="tf-state" data-on="0">Desactivada</span></h3>
+        <div id="tf-off">
+          <p class="vt-sub">Además de la contraseña maestra, cada vez que desbloquees te pedirá un código de 6 dígitos de tu app de autenticación (Google Authenticator, Microsoft Authenticator, Authy…). Así, aunque alguien sepa tu contraseña maestra, no puede entrar sin tu teléfono.</p>
+          <button class="btn" id="tf-start" type="button">Activar verificación en dos pasos</button>
+        </div>
+        <div id="tf-setup" hidden>
+          <ol class="tf-steps">
+            <li>Abre tu app de autenticación y toca <b>Agregar</b> (+). Elige <b>Ingresar clave de configuración</b>.</li>
+            <li>Pon de nombre <b>Mis cuentas</b> y escribe esta clave (déjala como «basada en tiempo»):</li>
+          </ol>
+          <div class="vt-reckey" id="tf-key" aria-live="polite"></div>
+          <div class="vt-reckey-btns"><button type="button" class="btn alt" id="tf-copy">Copiar clave</button><a class="btn alt" id="tf-open" href="#">Abrir en mi app</a></div>
+          <label>Escribe el código de 6 dígitos que te muestra la app<input id="tf-code" inputmode="numeric" autocomplete="one-time-code" maxlength="7" placeholder="000000"></label>
+          <span class="derr" id="tf-err" role="alert" hidden></span>
+          <div class="vt-reckey-btns"><button class="btn" id="tf-verify" type="button">Confirmar y activar</button><button class="btn alt" id="tf-cancel" type="button">Cancelar</button></div>
+        </div>
+        <div id="tf-codes" hidden>
+          <p class="vt-sub"><b>Guarda estos códigos de respaldo.</b> Sirven si pierdes tu teléfono. Cada uno funciona una sola vez y no se volverán a mostrar.</p>
+          <div class="tf-grid" id="tf-codes-list"></div>
+          <button type="button" class="btn alt" id="tf-codes-copy">Copiar códigos</button>
+          <label class="m-skip"><input type="checkbox" id="tf-codes-saved"><span><b>Ya guardé mis códigos de respaldo</b></span></label>
+          <button class="btn" id="tf-codes-done" type="button" disabled>Listo</button>
+        </div>
+        <div id="tf-on" hidden>
+          <p class="vt-sub" id="tf-left"></p>
+          <label>Tu contraseña maestra<span class="pwf"><input id="tf-pw" type="password" autocomplete="off"><button type="button" class="eye" data-eye="tf-pw" aria-label="Mostrar contraseña" aria-pressed="false" title="Mostrar contraseña"><svg class="i-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg><svg class="i-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.9 17.9A10.9 10.9 0 0 1 12 19c-6.4 0-10-7-10-7a18.5 18.5 0 0 1 5.1-5.9M9.9 5.2A9.8 9.8 0 0 1 12 5c6.4 0 10 7 10 7a18.6 18.6 0 0 1-2.2 3.2M14.1 14.1a3 3 0 1 1-4.2-4.2"/><path d="M2 2l20 20"/></svg></button></span></label>
+          <label>Código de tu app (solo para desactivar)<input id="tf-dis-code" inputmode="numeric" autocomplete="off" maxlength="12" placeholder="000000"></label>
+          <span class="derr" id="tf-on-err" role="alert" hidden></span>
+          <div class="vt-reckey-btns"><button class="btn alt" id="tf-regen" type="button">Nuevos códigos de respaldo</button><button class="btn alt vv-del" id="tf-disable" type="button">Desactivar</button></div>
+        </div>
       </div>
       <form class="vt-set" id="sc-form" novalidate autocomplete="off">
         <h3>Cambiar contraseña maestra</h3>

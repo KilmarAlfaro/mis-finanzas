@@ -1140,3 +1140,16 @@ li.done .rd-i span,li.done .rd-note p{text-decoration:none}
 .vt-reckey-btns .btn{align-self:stretch;display:flex;align-items:center;justify-content:center;text-align:center;min-height:3rem}
 .vt-info ul{all:revert;display:block;margin:.5rem 0 0;padding-left:1.2rem;color:var(--ink);font-size:.93rem;line-height:1.4}
 .vt-info ul li{all:revert;display:list-item;margin:.25rem 0}
+
+/* --- Nota en las cuentas y desbloqueo con huella --- */
+.ve-fields textarea{width:100%;padding:.7rem .9rem;border:1px solid #AEBFB9;border-radius:10px;background:#fff;min-height:5.2rem;font:inherit;color:var(--ink);resize:vertical;line-height:1.4}
+.vv-note{background:#F1F7F4;border-left:4px solid var(--acc)}
+.vv-note .vv-val{font-weight:600;white-space:pre-wrap;line-height:1.4}
+.hs-v{white-space:pre-wrap}
+#vg-biobox{display:grid;gap:.6rem;justify-items:center}
+#vg-biobox[hidden]{display:none}
+#vg-biobox .btn.bio{display:inline-flex;align-items:center;justify-content:center;gap:.6rem;width:100%;min-height:3.4rem;font-size:1.05rem}
+#vg-biobox .btn.bio svg,#bio-on svg{width:1.4rem;height:1.4rem;flex:none}
+#bio-on{display:inline-flex;align-items:center;justify-content:center;gap:.6rem}
+#bio-off,#bio-on-box{display:grid;gap:.8rem}
+#bio-off[hidden],#bio-on-box[hidden]{display:none}

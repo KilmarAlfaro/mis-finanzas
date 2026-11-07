@@ -299,6 +299,10 @@
       <div class="vt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><rect x="9" y="11" width="6" height="5" rx="1"/><path d="M10 11V9a2 2 0 0 1 4 0v2"/></svg></div>
       <h2 id="vg-title">Mis cuentas</h2>
       <p class="vt-sub" id="vg-sub">Comprobando tu bóveda…</p>
+      <div id="vg-biobox" hidden>
+        <button type="button" class="btn bio" id="vg-bio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4"/><path d="M14 13.12c0 2.38 0 6.38-1 8.88"/><path d="M17.29 21.02c.12-.6.43-2.3.5-3.02"/><path d="M2 12a10 10 0 0 1 18-6"/><path d="M2 16h.01"/><path d="M21.8 16c.2-2 .131-5.354 0-6"/><path d="M5 19.5C5.5 18 6 15 6 12a6 6 0 0 1 .34-2"/><path d="M8.65 22c.21-.66.45-1.32.57-2"/><path d="M9 6.8a6 6 0 0 1 9 5.2v2"/></svg>Desbloquear con huella</button>
+        <p class="vt-sub">o escribe tu contraseña maestra</p>
+      </div>
       <form id="vg-form" novalidate autocomplete="off" hidden>
         <label id="vg-l-rec" hidden>Clave de recuperación<input id="vg-rec" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXXX-XXXXX-XXXXX-XXXXX"></label>
         <label id="vg-l-pw"><span id="vg-pw-t">Contraseña maestra</span><span class="pwf"><input id="vg-pw" type="password" autocomplete="off"><button type="button" class="eye" data-eye="vg-pw" aria-label="Mostrar contraseña" aria-pressed="false" title="Mostrar contraseña"><svg class="i-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg><svg class="i-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.9 17.9A10.9 10.9 0 0 1 12 19c-6.4 0-10-7-10-7a18.5 18.5 0 0 1 5.1-5.9M9.9 5.2A9.8 9.8 0 0 1 12 5c6.4 0 10 7 10 7a18.6 18.6 0 0 1-2.2 3.2M14.1 14.1a3 3 0 1 1-4.2-4.2"/><path d="M2 2l20 20"/></svg></button></span></label>
@@ -354,6 +358,20 @@
         <h3>Bloqueo automático</h3>
         <label>Bloquear después de<select id="sc-lockmin"><option value="1">1 minuto sin usar</option><option value="5">5 minutos sin usar</option><option value="10">10 minutos sin usar</option><option value="15">15 minutos sin usar</option><option value="30">30 minutos sin usar</option></select></label>
         <button class="btn alt" id="sc-now" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Bloquear ahora</button>
+      </div>
+      <div class="vt-set" id="bio-card">
+        <h3>Desbloqueo con huella <span class="tf-state" id="bio-state" data-on="0">Desactivado</span></h3>
+        <div id="bio-off" hidden>
+          <p class="vt-sub">Entra con tu huella en lugar de escribir la contraseña maestra. En este teléfono. Tu contraseña maestra seguirá funcionando siempre.</p>
+          <label>Tu contraseña maestra<span class="pwf"><input id="bio-pw" type="password" autocomplete="off"><button type="button" class="eye" data-eye="bio-pw" aria-label="Mostrar contraseña" aria-pressed="false" title="Mostrar contraseña"><svg class="i-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg><svg class="i-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.9 17.9A10.9 10.9 0 0 1 12 19c-6.4 0-10-7-10-7a18.5 18.5 0 0 1 5.1-5.9M9.9 5.2A9.8 9.8 0 0 1 12 5c6.4 0 10 7 10 7a18.6 18.6 0 0 1-2.2 3.2M14.1 14.1a3 3 0 1 1-4.2-4.2"/><path d="M2 2l20 20"/></svg></button></span></label>
+          <span class="derr" id="bio-err" role="alert" hidden></span>
+          <button class="btn" id="bio-on" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4"/><path d="M14 13.12c0 2.38 0 6.38-1 8.88"/><path d="M17.29 21.02c.12-.6.43-2.3.5-3.02"/><path d="M2 12a10 10 0 0 1 18-6"/><path d="M2 16h.01"/><path d="M21.8 16c.2-2 .131-5.354 0-6"/><path d="M5 19.5C5.5 18 6 15 6 12a6 6 0 0 1 .34-2"/><path d="M8.65 22c.21-.66.45-1.32.57-2"/><path d="M9 6.8a6 6 0 0 1 9 5.2v2"/></svg>Activar huella en este dispositivo</button>
+        </div>
+        <div id="bio-on-box" hidden>
+          <p class="vt-sub" id="bio-mode"></p>
+          <button class="btn alt vv-del" id="bio-off-btn" type="button">Desactivar huella</button>
+        </div>
+        <p class="vt-sub" id="bio-na">Este dispositivo o navegador no permite usar la huella aquí. Necesita conexión segura (https) y un desbloqueo con huella configurado en el teléfono.</p>
       </div>
       <div class="vt-set" id="tf-card">
         <h3>Verificación en dos pasos <span class="tf-state" id="tf-state" data-on="0">Desactivada</span></h3>
@@ -528,6 +546,7 @@
       <label>Contraseña <em class="req" title="Obligatorio">*</em><span class="pwf"><input id="ve-pass" type="password" autocomplete="new-password" spellcheck="false" maxlength="200"><button type="button" class="eye" data-eye="ve-pass" aria-label="Mostrar contraseña" aria-pressed="false" title="Mostrar contraseña"><svg class="i-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg><svg class="i-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.9 17.9A10.9 10.9 0 0 1 12 19c-6.4 0-10-7-10-7a18.5 18.5 0 0 1 5.1-5.9M9.9 5.2A9.8 9.8 0 0 1 12 5c6.4 0 10 7 10 7a18.6 18.6 0 0 1-2.2 3.2M14.1 14.1a3 3 0 1 1-4.2-4.2"/><path d="M2 2l20 20"/></svg></button></span></label>
       <span class="derr" id="ve-e-pass" role="alert" hidden></span>
       <button type="button" class="filt-x ve-gen" id="ve-gen">Generar una contraseña segura</button>
+      <label>Nota<textarea id="ve-note" rows="3" maxlength="500" autocomplete="off"></textarea></label>
     </div>
     <div class="cat-sec">
       <div class="ve-lblrow"><span class="lbl" id="ve-color-lbl">Color</span><button type="button" class="filt-x" id="ve-color-reset">Predeterminado</button></div>

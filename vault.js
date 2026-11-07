@@ -89,7 +89,7 @@
   let PEND = null;                    // contraseña maestra correcta, pendiente del código de 2 pasos
   let appMode = 'fin', lastFin = 'res', gate = 'loading', fails = 0, waitUntil = 0;
   let idleT = null, hiddenAt = 0, clipT = null, E = null, viewId = '', pickerBuilt = false;
-  const FIELDS = [['name', 'Nombre de la cuenta'], ['email', 'Correo'], ['user', 'Nombre de usuario'], ['pass', 'Contraseña']];
+  const FIELDS = [['name', 'Nombre de la cuenta'], ['email', 'Correo'], ['user', 'Nombre de usuario'], ['pass', 'Contraseña'], ['note', 'Nota']];
   const VT_SECTIONS = ['vt-list', 'vt-sec'];
 
   /* Íconos propios de esta sección */
@@ -150,7 +150,7 @@
   function closeAllModals() { ['vt-view', 'vt-edit', 'vt-hist'].forEach(id => { $('#' + id).hidden = true; }); E = null; viewId = ''; }
   function clearScreen() {
     ['vt-items', 'vv-rows', 'hist-list'].forEach(id => { $('#' + id).innerHTML = ''; });
-    ['ve-name', 've-email', 've-user', 've-pass', 'vt-q', 'sc-cur', 'sc-new', 'sc-new2', 'sc-rec-pw'].forEach(id => { const el = $('#' + id); if (el) el.value = ''; });
+    ['ve-name', 've-email', 've-user', 've-pass', 've-note', 'vt-q', 'sc-cur', 'sc-new', 'sc-new2', 'sc-rec-pw'].forEach(id => { const el = $('#' + id); if (el) el.value = ''; });
     $('#sc-reckey').hidden = true; $('#sc-reckey-val').textContent = '';
     tfStage = 'idle'; tfSecret = ''; ['tf-key', 'tf-codes-list'].forEach(id => { $('#' + id).textContent = ''; }); ['tf-code', 'tf-pw', 'tf-dis-code', 'vg-otp'].forEach(id => { $('#' + id).value = ''; });
     resetEyes();
@@ -211,6 +211,7 @@
     ['vg-rec', 'vg-pw', 'vg-pw2', 'vg-otp'].forEach(id => { $('#' + id).value = ''; }); paintMeter('');
     resetEyes(); showErr('vg-err', ''); $('#vg-go').disabled = false; delete $('#vg-go').dataset.t;
     $('#vt-gate').hidden = false; $('#vt-open').hidden = true;
+    paintBio();
     if (form) setTimeout(() => $(state === 'forgot' ? '#vg-rec' : state === 'otp' ? '#vg-otp' : '#vg-pw').focus({ preventScroll: true }), 50);
   }
   async function enterVault() {
@@ -236,6 +237,14 @@
       if (e.conflict) { try { const cur = await VS.load(), d = await loadData(V.key, cur); V.items = d.items; V.sec = d.sec; V.doc = cur; V.rev = cur.rev || 0; renderOpen(); } catch {} }
       throw e;
     }
+  }
+
+  /* Último paso del desbloqueo (con contraseña maestra o con huella): si hay verificación en dos pasos, falta el código */
+  async function finishUnlock(key, doc) {
+    const data = await loadData(key, doc), tf = data.sec.totp;
+    if (tf && tf.enabled) { PEND = { key, doc, data }; renderGate('otp'); return; }
+    V = { key, doc, rev: doc.rev || 0, items: data.items, sec: data.sec };
+    fails = 0; waitUntil = 0; bump(); renderOpen();
   }
 
   $('#vg-form').addEventListener('submit', async e => {
@@ -272,10 +281,7 @@
         try { raw = await unseal(await kdf(pw, fromB64(doc.pw.s), doc.iter), doc.pw); }
         catch { fails++; if (fails >= 3) waitUntil = Date.now() + Math.min(60, 5 * 2 ** (fails - 3)) * 1000; busy(false); return showErr('vg-err', 'La contraseña maestra no es correcta.'); }
         const key = await importDek(raw); raw.fill(0);
-        const data = await loadData(key, doc), tf = data.sec.totp;
-        if (tf && tf.enabled) { PEND = { key, doc, data }; renderGate('otp'); return; }          // falta el código de la app de autenticación
-        V = { key, doc, rev: doc.rev || 0, items: data.items, sec: data.sec };
-        fails = 0; waitUntil = 0; bump(); renderOpen();
+        await finishUnlock(key, doc);
       } catch (er) { busy(false); showErr('vg-err', friendly(er)); }
       return;
     }
@@ -370,7 +376,8 @@
     if (it.email) rows.push(['email', 'Correo', it.email]);
     if (it.user) rows.push(['user', 'Nombre de usuario', it.user]);
     rows.push(['pass', 'Contraseña', it.pass]);
-    $('#vv-rows').innerHTML = rows.map(([k, l, v]) => `<div class="vv-row"><div class="vv-l">${l}</div><div class="vv-v"><span class="vv-val${k === 'pass' ? ' pw' : ''}" data-f="${k}">${k === 'pass' ? '••••••••••' : esc(v)}</span>`
+    if (it.note) rows.push(['note', 'Nota', it.note]);
+    $('#vv-rows').innerHTML = rows.map(([k, l, v]) => `<div class="vv-row${k === 'note' ? ' vv-note' : ''}"><div class="vv-l">${l}</div><div class="vv-v"><span class="vv-val${k === 'pass' ? ' pw' : ''}" data-f="${k}">${k === 'pass' ? '••••••••••' : esc(v)}</span>`
       + (k === 'pass' ? `<button type="button" class="vv-eye" data-reveal="pass" aria-label="Mostrar contraseña" aria-pressed="false" title="Mostrar contraseña">${EYE_ON}</button>` : '')
       + `<button type="button" class="vv-copy" data-cp="${k}" aria-label="Copiar ${l.toLowerCase()}" title="Copiar">${COPY}</button></div></div>`).join('');
     $('#vv-hist').hidden = !(it.history && it.history.length);
@@ -384,7 +391,7 @@
       const val = r.closest('.vv-v').querySelector('.vv-val'), on = r.getAttribute('aria-pressed') !== 'true';
       val.textContent = on ? it.pass : '••••••••••'; r.classList.toggle('on', on); r.setAttribute('aria-pressed', String(on));
       const t = on ? 'Ocultar contraseña' : 'Mostrar contraseña'; r.setAttribute('aria-label', t); r.title = t;
-    } else if (c) copyText(it[c.dataset.cp], { email: 'Correo', user: 'Usuario', pass: 'Contraseña' }[c.dataset.cp]);
+    } else if (c) copyText(it[c.dataset.cp], { email: 'Correo', user: 'Usuario', pass: 'Contraseña', note: 'Nota' }[c.dataset.cp]);
   });
   $('#vv-close').onclick = closeView;
   $('#vt-view').addEventListener('click', e => { if (e.target.id === 'vt-view') closeView(); });
@@ -460,7 +467,7 @@
     E = { id: it ? it.id : '', brand: it ? it.brand || '' : '', icon: it ? it.icon || '' : '', color: it ? it.color || '' : '' };
     $('#ve-title').textContent = it ? 'Editar cuenta' : 'Nueva cuenta';
     $('#ve-save').textContent = it ? 'Guardar cambios' : 'Guardar cuenta';
-    $('#ve-name').value = it ? it.name : ''; $('#ve-email').value = it ? it.email || '' : ''; $('#ve-user').value = it ? it.user || '' : ''; $('#ve-pass').value = it ? it.pass : '';
+    $('#ve-name').value = it ? it.name : ''; $('#ve-email').value = it ? it.email || '' : ''; $('#ve-user').value = it ? it.user || '' : ''; $('#ve-pass').value = it ? it.pass : ''; $('#ve-note').value = it ? it.note || '' : '';
     ['ve-e-name', 've-e-id', 've-e-pass', 've-e-mail'].forEach(x => showErr(x, ''));
     resetEyes(); $('#ve-search').value = ''; filterPicker();
     const val = E.brand ? 'b:' + E.brand : E.icon ? 'i:' + E.icon : ''; selectIcon(val);
@@ -468,7 +475,7 @@
     showModal($('#vt-edit')); $('#ve-name').focus({ preventScroll: true });
     const sel = document.querySelector('input[name=ve-icon]:checked'); if (sel) setTimeout(() => sel.closest('.bk').scrollIntoView({ block: 'nearest' }), 80);
   }
-  const closeEdit = async () => { await hideModal($('#vt-edit')); E = null; ['ve-name', 've-email', 've-user', 've-pass'].forEach(x => { $('#' + x).value = ''; }); resetEyes(); };
+  const closeEdit = async () => { await hideModal($('#vt-edit')); E = null; ['ve-name', 've-email', 've-user', 've-pass', 've-note'].forEach(x => { $('#' + x).value = ''; }); resetEyes(); };
   function filterPicker() {
     const q = norm($('#ve-search').value); let any = false;
     document.querySelectorAll('#ve-icons .bk').forEach(l => { const show = !q || norm(l.dataset.n).includes(q); l.hidden = !show; if (show) any = true; });
@@ -488,7 +495,7 @@
   $('#ve-cancel').onclick = closeEdit;
   $('#ve-save').onclick = async () => {
     if (!V || !E) return;
-    const f = { name: $('#ve-name').value.trim(), email: $('#ve-email').value.trim(), user: $('#ve-user').value.trim(), pass: $('#ve-pass').value };
+    const f = { name: $('#ve-name').value.trim(), email: $('#ve-email').value.trim(), user: $('#ve-user').value.trim(), pass: $('#ve-pass').value, note: $('#ve-note').value.trim() };
     let bad = null;
     showErr('ve-e-name', ''); showErr('ve-e-id', ''); showErr('ve-e-pass', ''); showErr('ve-e-mail', '');
     if (!f.name) { showErr('ve-e-name', 'Escribe el nombre de la cuenta.'); bad = bad || '#ve-name'; }
@@ -524,8 +531,83 @@
     const unlocked = !!V;
     $('#sc-locked').hidden = unlocked; $('#sc-body').hidden = !unlocked;
     $('#sc-lockmin').value = String(lockMin());
-    renderTF();
+    renderTF(); renderBio();
   }
+
+  /* ---------- Seguridad: desbloqueo con huella (WebAuthn) ----------
+     Se crea una credencial del teléfono protegida por tu huella. La clave de datos (DEK) se guarda envuelta SOLO en este dispositivo:
+     - Con la extensión PRF (si el teléfono la admite) la llave que la envuelve nace de la propia huella/credencial: sin ella no existe.
+     - Si no hay PRF, la llave es un CryptoKey no exportable del navegador y la huella actúa como verificación de acceso (nivel básico).
+     La contraseña maestra sigue funcionando siempre. Nada de esto se sube a la nube. */
+  const curUser = () => (window.firebase && firebase.auth && B.mode !== 'local' ? firebase.auth().currentUser : null) || {};
+  const whoKey = () => B.mode === 'local' ? (B.email() || '') : (curUser().uid || '');                   // identifica a la persona en este dispositivo
+  const whoName = () => B.mode === 'local' ? (B.email() || 'usuario') : (curUser().email || 'usuario');   // nombre visible
+  const bioKeyName = () => 'fin-bio:' + whoKey();
+  const bioRec = () => { try { return JSON.parse(localStorage.getItem(bioKeyName())); } catch { return null; } };
+  let bioOK = false;
+  if (window.isSecureContext && window.PublicKeyCredential && PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable) {
+    PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().then(v => { bioOK = !!v; paintBio(); renderBio(); }).catch(() => {});
+  }
+  const idb = () => new Promise((ok, no) => { const r = indexedDB.open('fin-bio', 1); r.onupgradeneeded = () => r.result.createObjectStore('k'); r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error); });
+  const idbDo = async (mode, fn) => { const d = await idb(); return new Promise((ok, no) => { const t = d.transaction('k', mode), rq = fn(t.objectStore('k')); t.oncomplete = () => { d.close(); ok(rq && rq.result); }; t.onerror = () => no(t.error); }); };
+  const idbPut = (k, v) => idbDo('readwrite', st => st.put(v, k)), idbGet = k => idbDo('readonly', st => st.get(k)), idbDel = k => idbDo('readwrite', st => st.delete(k));
+  const waCreate = () => navigator.credentials.create({ publicKey: {
+    rp: { name: 'Mis finanzas', id: location.hostname }, user: { id: rnd(16), name: whoName(), displayName: 'Mis cuentas' },
+    challenge: rnd(32), pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }],
+    authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required', residentKey: 'discouraged' },
+    attestation: 'none', timeout: 60000, extensions: { prf: {} } } });
+  const waGet = (cid, salt) => navigator.credentials.get({ publicKey: {
+    challenge: rnd(32), rpId: location.hostname, allowCredentials: [{ type: 'public-key', id: fromB64(cid), transports: ['internal'] }],
+    userVerification: 'required', timeout: 60000, ...(salt ? { extensions: { prf: { eval: { first: salt } } } } : {}) } });
+  const prfOut = c => { const r = c.getClientExtensionResults(); return r.prf && r.prf.results && r.prf.results.first; };
+  const prfKey = async buf => crypto.subtle.deriveKey({ name: 'HKDF', hash: 'SHA-256', salt: new Uint8Array(32), info: enc.encode('mis-cuentas:bio:v1') },
+    await crypto.subtle.importKey('raw', buf, 'HKDF', false, ['deriveKey']), { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+  async function bioWrapKey(rec) {                                   // pide la huella y devuelve la llave que abre la clave de datos
+    if (rec.mode === 'prf') { const out = prfOut(await waGet(rec.cid, fromB64(rec.salt))); if (!out) throw Object.assign(new Error('prf'), { name: 'NotAllowedError' }); return prfKey(out); }
+    await waGet(rec.cid); const k = await idbGet(bioKeyName()); if (!k) throw Object.assign(new Error('nokey'), { name: 'NotFoundError' }); return k;
+  }
+  function paintBio() { $('#vg-biobox').hidden = !(gate === 'unlock' && bioOK && !!bioRec()); }
+  function renderBio() {
+    const rec = bioRec();
+    $('#bio-na').hidden = bioOK; $('#bio-off').hidden = !(bioOK && !rec); $('#bio-on-box').hidden = !(bioOK && !!rec);
+    $('#bio-state').textContent = rec && bioOK ? 'Activado' : 'Desactivado'; $('#bio-state').dataset.on = rec && bioOK ? '1' : '0';
+    if (rec) $('#bio-mode').textContent = rec.mode === 'prf' ? 'Tu huella protege una llave del teléfono: es la opción más segura.' : 'Tu teléfono no permite la protección avanzada: la huella funciona como verificación de acceso. Usa también un bloqueo de pantalla fuerte.';
+  }
+  $('#bio-on').onclick = async () => {
+    showErr('bio-err', ''); const pw = $('#bio-pw').value;
+    if (!pw) return showErr('bio-err', 'Escribe tu contraseña maestra para activarlo.');
+    const btn = $('#bio-on'); btn.disabled = true;
+    try {
+      const v = await verifyMaster(pw); if (!v) return showErr('bio-err', 'La contraseña maestra no es correcta.');
+      let cred;
+      try { cred = await waCreate(); }
+      catch (er) { v.raw.fill(0); return showErr('bio-err', er.name === 'NotAllowedError' ? 'No se verificó tu huella. Inténtalo de nuevo.' : 'Este dispositivo no permite usar la huella aquí.'); }
+      const cid = toB64(new Uint8Array(cred.rawId)), ext = cred.getClientExtensionResults(); let mode = 'gate', salt = '', wk = null;
+      if (ext.prf && ext.prf.enabled) { try { const s = rnd(32), out = prfOut(await waGet(cid, s)); if (out) { mode = 'prf'; salt = toB64(s); wk = await prfKey(out); } } catch {} }
+      if (!wk) { wk = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']); await idbPut(bioKeyName(), wk); }
+      const wrap = await seal(wk, v.raw); v.raw.fill(0);
+      localStorage.setItem(bioKeyName(), JSON.stringify({ v: 1, cid, mode, salt, wrap, since: new Date().toISOString() }));
+      $('#bio-pw').value = ''; resetEyes(); renderBio(); paintBio(); toast('Huella activada en este dispositivo');
+    } catch (er) { showErr('bio-err', friendly(er)); }
+    finally { btn.disabled = false; }
+  };
+  $('#bio-off-btn').onclick = async () => { localStorage.removeItem(bioKeyName()); try { await idbDel(bioKeyName()); } catch {} renderBio(); paintBio(); toast('Huella desactivada'); };
+  $('#vg-bio').onclick = async () => {
+    const rec = bioRec(); if (!rec || V) return;
+    const btn = $('#vg-bio'); btn.disabled = true; showErr('vg-err', '');
+    try {
+      const doc = await VS.load(); if (!doc) throw new Error('nodoc');
+      const wk = await bioWrapKey(rec);
+      let raw; try { raw = await unseal(wk, rec.wrap); } catch { throw Object.assign(new Error('bad'), { name: 'NotFoundError' }); }
+      const key = await importDek(raw); raw.fill(0);
+      try { await loadData(key, doc); } catch { throw Object.assign(new Error('bad'), { name: 'NotFoundError' }); }
+      await finishUnlock(key, doc);
+    } catch (er) {
+      if (er.name === 'NotFoundError') { localStorage.removeItem(bioKeyName()); try { await idbDel(bioKeyName()); } catch {} paintBio(); showErr('vg-err', 'La huella ya no está vinculada a tus cuentas. Entra con tu contraseña maestra y vuelve a activarla en Seguridad.'); }
+      else if (er.name === 'NotAllowedError' || er.name === 'AbortError') showErr('vg-err', 'No se pudo verificar tu huella. Escribe tu contraseña maestra.');
+      else showErr('vg-err', friendly(er));
+    } finally { btn.disabled = false; }
+  };
 
   /* ---------- Seguridad: verificación en dos pasos ---------- */
   let tfStage = 'idle', tfSecret = '';                        // idle | setup | codes
@@ -544,7 +626,7 @@
   $('#tf-start').onclick = () => {
     tfSecret = b32enc(rnd(20));
     $('#tf-key').textContent = tfSecret.match(/.{4}/g).join(' ');
-    const who = encodeURIComponent((B.email && B.email()) || 'mis-cuentas');
+    const who = encodeURIComponent(whoName());
     $('#tf-open').href = `otpauth://totp/Mis%20cuentas:${who}?secret=${tfSecret}&issuer=Mis%20cuentas&algorithm=SHA1&digits=6&period=30`;
     $('#tf-code').value = ''; showErr('tf-err', ''); tfStage = 'setup'; renderTF();
   };
